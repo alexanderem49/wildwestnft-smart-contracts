@@ -14,7 +14,8 @@
     "solidity",
     "nft",
     "blockchain",
-    "ethereum"
+    "ethereum",
+    "smart-contracts"
   ],
   "author": "Alexander Malyshev",
   "license": "MIT",
