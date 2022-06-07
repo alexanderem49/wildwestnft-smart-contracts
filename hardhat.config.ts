@@ -26,15 +26,15 @@ const config: HardhatUserConfig = {
   solidity: "0.8.14",
   networks: {
     rinkeby: {
-      url: process.env.RINKEBY_URL || "",
+      url: process.env.RINKEBY_URL || "http://127.0.0.1",
       accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
       },
     },
     mainnet: {
-      url: process.env.MAINNET_URL || "",
+      url: process.env.MAINNET_URL || "http://127.0.0.1",
       accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
       },
     }
   },
