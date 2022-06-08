@@ -18,6 +18,13 @@ jobs:
         node-version: [16.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
     steps:
+    - uses: actions/checkout@v3
+    - name: Launch Hardhat tests
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
     - name: Create env file
       run: |
         touch .env
@@ -33,12 +40,5 @@ jobs:
         MNEMONIC: ${{ secrets.MNEMONIC }} 
         REPORT_GAS: ${{ secrets.REPORT_GAS }} 
         ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }} 
-    - uses: actions/checkout@v3
-    - name: Launch Hardhat tests
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
     - run: npx hardhat compile
     - run: npm test
