@@ -24,19 +24,35 @@ describe('NFT contract', () => {
     await nft.deployed();
   });
 
-  describe('mints', () => {
+  describe('initial values', async () => {
+    it('should set token name', async () => {
+      expect(name).to.be.equal(await nft.name());
+    });
+
+    it('should set token symbol', async () => {
+      expect(symbol).to.be.equal(await nft.symbol());
+    });
+
+    it('should set base token URI', async () => {
+      expect(symbol).to.be.equal(await nft.symbol());
+    })
+  });
+
+  describe('mints', async () => {
     it('mints successfully', async () => {
       const addr1BalanceBefore = await nft.balanceOf(addr1.address);
 
       const tokenId = await nft.callStatic.mint(addr1.address);
-      await nft.mint(addr1.address);
+      const tx = await nft.mint(addr1.address);
 
       const tokenCount = await nft.currentTokenId();
-
+      const tokenUri = await nft.tokenURI(tokenId);
       const addr1BalanceAfter = await nft.balanceOf(addr1.address);
 
+      expect(tokenId).to.be.equal(0);
       expect(addr1BalanceAfter).to.equal(addr1BalanceBefore.add(tokenCount));
-      expect(baseTokenURI + tokenId + ".json").to.equal(await nft.tokenURI(tokenId));
+      expect(baseTokenURI + tokenId + ".json").to.equal(tokenUri);
+      expect(tx).to.emit(nft, "PermanentURI").withArgs(tokenUri, tokenId);
     })
   })
 
@@ -49,7 +65,7 @@ describe('NFT contract', () => {
     })
 
     it('rejects nonexistent token', async () => {
-      await expect(nft.tokenURI(parseUnits("1000", 18))).to.be.revertedWith('ERC721Metadata: URI query for nonexistent token');
+      await expect(nft.tokenURI(parseUnits("1000", 18))).to.be.revertedWith('ERC721Metadata: token !exists');
     })
   })
 });
