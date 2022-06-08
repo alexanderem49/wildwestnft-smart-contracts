@@ -8,14 +8,20 @@ contract NFT is ERC721, Ownable {
     string public baseTokenURI;
     uint256 public currentTokenId = 0;
 
+    mapping(address => bool) private _isWhitelisted;
+
     event PermanentURI(string _value, uint256 indexed _id);
+    event AddedToWhitelist(address[] users);
+    event RemovedFromWhitelist(address[] users);
 
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory baseTokenURI_
+        string memory baseTokenURI_,
+        address[] memory users_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
+        _addWhitelists(users_);
     }
 
     function mint(address _to) public onlyOwner returns (uint256) {
@@ -43,5 +49,39 @@ contract NFT is ERC721, Ownable {
                     ".json"
                 )
             );
+    }
+
+    function addWhitelists(address[] calldata users) external onlyOwner {
+        _addWhitelists(users);
+    }
+
+    function _addWhitelists(address[] memory users) internal onlyOwner {
+        uint256 length = users.length;
+        require(length <= 256, "NFT: whitelist too long!");
+        for (uint256 i = 0; i < length; i++) {
+            address user = users[i];
+            require(user != address(0), "NFT: user is zero address");
+            require(_isWhitelisted[user] == false, "NFT: user whitelisted");
+            _isWhitelisted[user] = true;
+        }
+
+        emit AddedToWhitelist(users);
+    }
+
+    function removeWhitelists(address[] calldata users) external onlyOwner {
+        uint256 length = users.length;
+        require(length <= 256, "NFT: whitelist too long");
+        for (uint256 i = 0; i < length; i++) {
+            address user = users[i];
+            require(user != address(0), "NFT: user is zero address");
+            require(_isWhitelisted[user] == true, "NFT: user !whitelisted");
+            _isWhitelisted[user] = false;
+        }
+
+        emit RemovedFromWhitelist(users);
+    }
+
+    function isWhitelisted(address user) external view returns (bool) {
+        return _isWhitelisted[user];
     }
 }
