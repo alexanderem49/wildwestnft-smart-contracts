@@ -21,11 +21,11 @@ jobs:
     - name: Create env file
       run: |
         touch .env
-        echo RINKEBY_URL=${RINKEBY_URL} > .env
-        echo MAINNET_URL=${MAINNET_URL} > .env
-        echo MNEMONIC=${MNEMONIC} > .env
-        echo REPORT_GAS=${REPORT_GAS} > .env
-        echo ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY} > .env
+        echo RINKEBY_URL=${RINKEBY_URL} >> .env
+        echo MAINNET_URL=${MAINNET_URL} >> .env
+        echo MNEMONIC=${MNEMONIC} >> .env
+        echo REPORT_GAS=${REPORT_GAS} >> .env
+        echo ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY} >> .env
         cat .env
       env: 
         RINKEBY_URL: ${{ secrets.RINKEBY_URL }} 
