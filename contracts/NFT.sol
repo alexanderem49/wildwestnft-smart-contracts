@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.14;
+pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -12,13 +12,13 @@ contract NFT is ERC721, Ownable {
     uint256 public currentTokenId = 0;
 
     constructor(
-        string memory name,
-        string memory symbol,
-        string memory baseTokenURI
-    ) ERC721(name, symbol) {
-        _name = name;
-        _symbol = symbol;
-        _baseTokenURI = baseTokenURI;
+        string memory name_,
+        string memory symbol_,
+        string memory baseTokenURI_
+    ) ERC721(name_, symbol_) {
+        _name = name_;
+        _symbol = symbol_;
+        _baseTokenURI = baseTokenURI_;
     }
 
     function mint(address _to) public onlyOwner returns (uint256) {
