@@ -41,4 +41,5 @@ jobs:
         REPORT_GAS: ${{ secrets.REPORT_GAS }} 
         ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }} 
     - run: npx hardhat compile
+    - run: npx hardhat test
     - run: npx hardhat coverage
