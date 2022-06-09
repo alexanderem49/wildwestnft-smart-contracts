@@ -5,32 +5,63 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract NFT is ERC721, Ownable {
+    using Address for address payable;
+
     string public baseTokenURI;
+    address public fundingWallet;
+    uint256 public deadline;
     uint256 public currentTokenId = 0;
+    uint256 public DISCOUNT_PRICE = 400000000000000000;
+    uint256 public UNDISCOUNT_PRICE = 500000000000000000;
 
     mapping(address => bool) private _isWhitelisted;
 
     event PermanentURI(string _value, uint256 indexed _id);
     event AddedToWhitelist(address[] users);
     event RemovedFromWhitelist(address[] users);
+    event Bought(
+        uint256 indexed _tokenId,
+        address indexed _buyer,
+        uint256 _price
+    );
 
     constructor(
         string memory name_,
         string memory symbol_,
         string memory baseTokenURI_,
+        address fundingWallet_,
+        uint256 deadline_,
         address[] memory users_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
+        fundingWallet = fundingWallet_;
+        deadline = deadline_;
         _addWhitelists(users_);
     }
 
-    function mint(address _to) public onlyOwner returns (uint256) {
-        uint256 newTokenId = currentTokenId;
-        _safeMint(_to, currentTokenId);
-        currentTokenId++;
+    function priceFor(address _user) public view returns (uint256) {
+        if (block.timestamp < deadline || _isWhitelisted[_user]) {
+            return DISCOUNT_PRICE;
+        }
 
-        emit PermanentURI(tokenURI(newTokenId), newTokenId);
-        return newTokenId;
+        return UNDISCOUNT_PRICE;
+    }
+
+    function buy(uint256 _tokenId) external payable {
+        uint256 price = priceFor(msg.sender);
+
+        require(msg.value == price, "NFT: invalid value");
+
+        payable(fundingWallet).sendValue(msg.value);
+
+        _safeMint(msg.sender, _tokenId);
+
+        emit Bought(_tokenId, msg.sender, price);
+    }
+
+    function setFundingWallet(address _fundingWallet) external onlyOwner {
+        require(_fundingWallet != address(0), "NFT: wallet is zero address");
+        fundingWallet = _fundingWallet;
     }
 
     function tokenURI(uint256 _tokenId)
