@@ -35,7 +35,6 @@
     "@types/node": "^17.0.41",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
-    "eslint": "^7.32.0",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.8",
     "hardhat": "^2.9.7",
