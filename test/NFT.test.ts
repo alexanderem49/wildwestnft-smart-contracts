@@ -110,7 +110,7 @@ describe('NFT contract', () => {
   })
 
   describe('buys NFT', async () => {
-    const tokenId = parseUnits("1", 18);
+    const tokenId = 1;
 
     it('buys NFT successfully', async () => {
       const addr1BalanceBefore = await ethers.provider.getBalance(addr1.address);
@@ -132,13 +132,21 @@ describe('NFT contract', () => {
     })
 
     it('rejects buying NFT while invalid value', async () => {
-      await expect(nft.connect(addr1).buy(tokenId, { value: parseUnits("0.2", 18) })).to.be.revertedWith('NFT: invalid value');
+      await expect(nft.connect(addr1).buy(tokenId, { value: parseUnits("0.2", 18) })).to.be.revertedWith('NFT: invalid value')
+    })
+
+    it('rejects buying NFT while token id less than 1', async () => {
+      await expect(nft.connect(addr1).buy(0, { value: parseUnits("0.2", 18) })).to.be.revertedWith('NFT: token !exists')
+    })
+
+    it('rejects buying NFT while token id more than 10005', async () => {
+      await expect(nft.connect(addr1).buy(10006, { value: parseUnits("0.2", 18) })).to.be.revertedWith('NFT: token !exists')
     })
   })
 
   describe('gets token URI', async () => {
     it('gets token URI successfully', async () => {
-      const tokenId = parseUnits("1", 18);
+      const tokenId = 1;
       const price = await nft.priceFor(addr1.address);
 
       await nft.connect(addr1).buy(tokenId, { value: price });

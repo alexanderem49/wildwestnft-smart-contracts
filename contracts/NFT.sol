@@ -10,7 +10,6 @@ contract NFT is ERC721, Ownable {
     string public baseTokenURI;
     address public fundingWallet;
     uint256 public deadline;
-    uint256 public currentTokenId = 0;
     uint256 public DISCOUNT_PRICE = 400000000000000000;
     uint256 public UNDISCOUNT_PRICE = 500000000000000000;
 
@@ -48,12 +47,12 @@ contract NFT is ERC721, Ownable {
     }
 
     function buy(uint256 _tokenId) external payable {
-        uint256 price = priceFor(msg.sender);
+        require(_tokenId >= 1 && _tokenId <= 10005, "NFT: token !exists");
 
+        uint256 price = priceFor(msg.sender);
         require(msg.value == price, "NFT: invalid value");
 
         payable(fundingWallet).sendValue(msg.value);
-
         _safeMint(msg.sender, _tokenId);
 
         emit Bought(_tokenId, msg.sender, price);
