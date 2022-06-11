@@ -7,9 +7,12 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract GoldenNugget is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    constructor() ERC20("Golden Nugget", "GN") {
+    constructor(address minter) ERC20("Golden Nugget", "GN") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
+
+        if (minter != address(0)) {
+            _grantRole(MINTER_ROLE, minter);
+        }
     }
 
     function mint(address _user, uint256 _amount)
