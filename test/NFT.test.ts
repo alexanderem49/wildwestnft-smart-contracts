@@ -4,7 +4,6 @@ import { parseUnits } from "@ethersproject/units";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
 
 async function incrementNextBlockTimestamp(amount: number): Promise<void> {
   return ethers.provider.send("evm_increaseTime", [amount]);
