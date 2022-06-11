@@ -56,6 +56,7 @@ contract NFT is ERC721, Ownable {
         _safeMint(msg.sender, _tokenId);
 
         emit Bought(_tokenId, msg.sender, price);
+        emit PermanentURI(tokenURI(_tokenId), _tokenId);
     }
 
     function setFundingWallet(address _fundingWallet) external onlyOwner {
