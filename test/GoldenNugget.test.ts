@@ -21,7 +21,7 @@ describe('Golden Nugget ERC-20 contract', () => {
   });
 
   describe('initial values', async () => {
-    it('should set roles', async () => {
+    it('should set roles (minter is set)', async () => {
       goldenNugget = await GoldenNugget.deploy(addr1.address);
       await goldenNugget.deployed();
 
@@ -29,7 +29,7 @@ describe('Golden Nugget ERC-20 contract', () => {
       expect(await goldenNugget.hasRole(await goldenNugget.MINTER_ROLE(), addr1.address)).to.equal(true);
     })
 
-    it('should set roles', async () => {
+    it('should set roles (minter is zero address)', async () => {
       goldenNugget = await GoldenNugget.deploy(zeroAddress);
       await goldenNugget.deployed();
 
