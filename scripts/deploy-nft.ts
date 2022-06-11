@@ -3,12 +3,13 @@ import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 async function main() {
-  let fundingWallet: SignerWithAddress;
+  const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
 
+  let fundingWallet: SignerWithAddress;
   let addrs: SignerWithAddress[];
   const name = "Wild West NFT";
   const symbol = "WWN";
-  const baseTokenURI = "ipfs://bafkreib7rk44lfgqzt6jfvma4khx6sgag6edmp4d2avt67flk5wueqfjc4";
+  const baseTokenURI = "ipfs://bafybeibxrjv7ilwumzeajtqm7ufirmoyy4wfpwzxc2skfk3p4klnpwh3ae";
   const deadline = Math.round((new Date().getTime() + 6000) / 1000);
 
   [fundingWallet, ...addrs] = await ethers.getSigners();
@@ -20,25 +21,12 @@ async function main() {
 
   console.log("NFT deployed to:", nft.address);
 
-  let users = [];
+  await delay(35000);
 
-  for (let i = 0; i <= 256; i++) {
-    console.log("Count users:", i);
-
-    if (i >= 1) {
-      users.push(ethers.Wallet.createRandom().address);
-    }
-
-    console.log("Adding");
-    let tx = await nft.addWhitelists(users)
-    let minedTx = await tx.wait();
-    console.log("NFT gasUsed:", minedTx.gasUsed);
-
-    console.log("Removing");
-    tx = await nft.removeWhitelists(users)
-    minedTx = await tx.wait();
-    console.log("NFT gasUsed:", minedTx.gasUsed);
-  }
+  await hre.run("verify:verify", {
+    address: nft.address,
+    constructorArguments: [name, symbol, baseTokenURI, fundingWallet.address, deadline, []],
+  });
 }
 
 main().catch((error) => {
