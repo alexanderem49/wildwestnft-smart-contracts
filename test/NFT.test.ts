@@ -4,7 +4,6 @@ import { parseUnits } from "@ethersproject/units";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
 
 async function incrementNextBlockTimestamp(amount: number): Promise<void> {
   return ethers.provider.send("evm_increaseTime", [amount]);
@@ -30,7 +29,7 @@ describe('NFT contract', () => {
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
 
-    const deadline = Math.round((new Date().getTime() + 6000) / 1000);
+    const deadline = Math.round((new Date().getTime() + 86400) / 1000);
 
     nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, [addr3.address]);
 
@@ -74,7 +73,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
       await nft.addWhitelists([addr1.address]);
 
@@ -83,7 +82,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for !whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(false);
@@ -122,6 +121,7 @@ describe('NFT contract', () => {
 
       const minedTx = await tx.wait();
       const fee = minedTx.gasUsed.mul(minedTx.effectiveGasPrice);
+      const uri = await nft.tokenURI(tokenId);
 
       const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
       const fundingWalletBalanceAfter = await ethers.provider.getBalance(fundingWallet.address);
@@ -129,6 +129,7 @@ describe('NFT contract', () => {
       expect(addr1BalanceAfter).to.equal(addr1BalanceBefore.sub(price).sub(fee));
       expect(fundingWalletBalanceAfter).to.equal(fundingWalletBalanceBefore.add(price));
       expect(tx).to.emit(nft, "Bought").withArgs(tokenId, addr1.address, price);
+      expect(tx).to.emit(nft, "PermanentURI").withArgs(uri, tokenId);
     })
 
     it('rejects buying NFT while invalid value', async () => {
