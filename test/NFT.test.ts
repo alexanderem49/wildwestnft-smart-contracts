@@ -29,7 +29,7 @@ describe('NFT contract', () => {
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
 
-    const deadline = Math.round((new Date().getTime() + 6000) / 1000);
+    const deadline = Math.round((new Date().getTime() + 86400) / 1000);
 
     nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, [addr3.address]);
 
@@ -73,7 +73,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
       await nft.addWhitelists([addr1.address]);
 
@@ -82,7 +82,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for !whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(false);
