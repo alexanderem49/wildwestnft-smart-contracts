@@ -121,6 +121,7 @@ describe('NFT contract', () => {
 
       const minedTx = await tx.wait();
       const fee = minedTx.gasUsed.mul(minedTx.effectiveGasPrice);
+      const uri = await nft.tokenURI(tokenId);
 
       const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
       const fundingWalletBalanceAfter = await ethers.provider.getBalance(fundingWallet.address);
@@ -128,6 +129,7 @@ describe('NFT contract', () => {
       expect(addr1BalanceAfter).to.equal(addr1BalanceBefore.sub(price).sub(fee));
       expect(fundingWalletBalanceAfter).to.equal(fundingWalletBalanceBefore.add(price));
       expect(tx).to.emit(nft, "Bought").withArgs(tokenId, addr1.address, price);
+      expect(tx).to.emit(nft, "PermanentURI").withArgs(uri, tokenId);
     })
 
     it('rejects buying NFT while invalid value', async () => {
