@@ -1,17 +1,21 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.14;
 
+import "./interface/ITokenSupplyData.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NFT is ERC721, Ownable {
+contract NFT is ERC721, Ownable, ITokenSupplyData {
     using Address for address payable;
 
     string public baseTokenURI;
     address public fundingWallet;
     uint256 public deadline;
-    uint256 public DISCOUNT_PRICE = 400000000000000000;
-    uint256 public UNDISCOUNT_PRICE = 500000000000000000;
+    uint256 public constant DISCOUNT_PRICE = 400000000000000000;
+    uint256 public constant UNDISCOUNT_PRICE = 500000000000000000;
+
+    uint256 private totalSupply;
+    uint256 private constant MAX_SUPPLY = 10005;
 
     mapping(address => bool) private _isWhitelisted;
 
@@ -36,6 +40,7 @@ contract NFT is ERC721, Ownable {
         fundingWallet = fundingWallet_;
         deadline = deadline_;
         _addWhitelists(users_);
+        totalSupply = 0;
     }
 
     function priceFor(address _user) public view returns (uint256) {
@@ -47,13 +52,15 @@ contract NFT is ERC721, Ownable {
     }
 
     function buy(uint256 _tokenId) external payable {
-        require(_tokenId >= 1 && _tokenId <= 10005, "NFT: token !exists");
+        require(_tokenId >= 1 && _tokenId <= MAX_SUPPLY, "NFT: token !exists");
 
         uint256 price = priceFor(msg.sender);
         require(msg.value == price, "NFT: invalid value");
 
         payable(fundingWallet).sendValue(msg.value);
         _safeMint(msg.sender, _tokenId);
+
+        totalSupply++;
 
         emit Bought(_tokenId, msg.sender, price);
         emit PermanentURI(tokenURI(_tokenId), _tokenId);
@@ -114,5 +121,19 @@ contract NFT is ERC721, Ownable {
 
     function isWhitelisted(address user) external view returns (bool) {
         return _isWhitelisted[user];
+    }
+
+    function maxSupply() external view virtual override returns (uint256) {
+        return MAX_SUPPLY;
+    }
+
+    function circulatingSupply()
+        external
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return totalSupply;
     }
 }
