@@ -1,17 +1,21 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.14;
 
+import "./interface/ITokenSupplyData.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NFT is ERC721, Ownable {
+contract NFT is ERC721, Ownable, ITokenSupplyData {
     using Address for address payable;
 
     string public baseTokenURI;
     address public fundingWallet;
     uint256 public deadline;
-    uint256 public DISCOUNT_PRICE = 400000000000000000;
-    uint256 public UNDISCOUNT_PRICE = 500000000000000000;
+    uint256 public constant DISCOUNT_PRICE = 400000000000000000;
+    uint256 public constant BASE_PRICE = 500000000000000000;
+
+    uint256 private totalSupply = 0;
+    uint256 private constant MAX_SUPPLY = 10005;
 
     mapping(address => bool) private _isWhitelisted;
 
@@ -43,17 +47,19 @@ contract NFT is ERC721, Ownable {
             return DISCOUNT_PRICE;
         }
 
-        return UNDISCOUNT_PRICE;
+        return BASE_PRICE;
     }
 
     function buy(uint256 _tokenId) external payable {
-        require(_tokenId >= 1 && _tokenId <= 10005, "NFT: token !exists");
+        require(_tokenId >= 1 && _tokenId <= MAX_SUPPLY, "NFT: token !exists");
 
         uint256 price = priceFor(msg.sender);
         require(msg.value == price, "NFT: invalid value");
 
         payable(fundingWallet).sendValue(msg.value);
         _safeMint(msg.sender, _tokenId);
+
+        totalSupply++;
 
         emit Bought(_tokenId, msg.sender, price);
         emit PermanentURI(tokenURI(_tokenId), _tokenId);
@@ -86,19 +92,6 @@ contract NFT is ERC721, Ownable {
         _addWhitelists(users);
     }
 
-    function _addWhitelists(address[] memory users) internal onlyOwner {
-        uint256 length = users.length;
-        require(length <= 256, "NFT: whitelist too long!");
-        for (uint256 i = 0; i < length; i++) {
-            address user = users[i];
-            require(user != address(0), "NFT: user is zero address");
-            require(_isWhitelisted[user] == false, "NFT: user whitelisted");
-            _isWhitelisted[user] = true;
-        }
-
-        emit AddedToWhitelist(users);
-    }
-
     function removeWhitelists(address[] calldata users) external onlyOwner {
         uint256 length = users.length;
         require(length <= 256, "NFT: whitelist too long");
@@ -114,5 +107,26 @@ contract NFT is ERC721, Ownable {
 
     function isWhitelisted(address user) external view returns (bool) {
         return _isWhitelisted[user];
+    }
+
+    function maxSupply() external pure override returns (uint256) {
+        return MAX_SUPPLY;
+    }
+
+    function circulatingSupply() external view override returns (uint256) {
+        return totalSupply;
+    }
+
+    function _addWhitelists(address[] memory users) private onlyOwner {
+        uint256 length = users.length;
+        require(length <= 256, "NFT: whitelist too long!");
+        for (uint256 i = 0; i < length; i++) {
+            address user = users[i];
+            require(user != address(0), "NFT: user is zero address");
+            require(_isWhitelisted[user] == false, "NFT: user whitelisted");
+            _isWhitelisted[user] = true;
+        }
+
+        emit AddedToWhitelist(users);
     }
 }
