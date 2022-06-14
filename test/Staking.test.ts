@@ -103,6 +103,7 @@ describe('Staking contract', () => {
       const price = await nft.priceFor(owner.address);
       await nft.buy(tokenId, { value: price });
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
+      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 99);
       await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 100);
 
       const ownerNftBefore = await nft.ownerOf(tokenId);
@@ -112,7 +113,7 @@ describe('Staking contract', () => {
       const tx = await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId);
 
       const txTimestamp = await getBlockTimestamp(tx);
-      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(1653439153935);
+      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(stakeInfoBefore.tokenCount).mul(1653439153935);
 
       const ownerNftAfter = await nft.ownerOf(tokenId);
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
@@ -185,10 +186,6 @@ describe('Staking contract', () => {
 
       await expect(staking.addNFT(nft.address, percentageThreshold)).to.be.revertedWith('Staking: already added');
     })
-
-    it('rejects adding NFT while zero address', async () => {
-      await expect(staking.addNFT(zeroAddress, percentageThreshold)).to.be.revertedWith('Staking: zero address');
-    })
   })
 
   describe('claims', () => {
@@ -231,7 +228,7 @@ describe('Staking contract', () => {
       const tx = await staking.claim();
 
       const txTimestamp = await getBlockTimestamp(tx);
-      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(1653439153935);
+      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(stakeInfoBefore.tokenCount).mul(1653439153935);
 
       const stakeInfoAfter = await staking.stakeInfo(owner.address);
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);

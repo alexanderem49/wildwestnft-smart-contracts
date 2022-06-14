@@ -22,13 +22,13 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     struct Stake {
-        uint256 tokenCount;
-        uint256 startDate;
+        uint128 tokenCount;
+        uint128 startDate;
     }
 
     struct Nft {
         uint8 percentageThreshold;
-        uint256 status;
+        uint8 status;
     }
 
     event NftAdded(address indexed nftContract);
@@ -58,27 +58,22 @@ contract Staking is IERC721Receiver, AccessControl {
         uint256 _tokenId,
         bytes calldata
     ) external virtual override returns (bytes4) {
-        require(
-            address(this) == IERC721(msg.sender).ownerOf(_tokenId),
-            "Staking: NFT not received"
-        );
-
         Nft storage nft = nftInfo[msg.sender];
 
-        if (nft.status == uint256(Status.WAIT)) {
+        if (nft.status == uint8(Status.WAIT)) {
             if (isReachedThreshold(msg.sender, nft.percentageThreshold)) {
-                nft.status = uint256(Status.ACTIVE);
+                nft.status = uint8(Status.ACTIVE);
             }
         }
 
-        require(nft.status == uint256(Status.ACTIVE), "Staking: not started");
+        require(nft.status == uint8(Status.ACTIVE), "Staking: not started");
 
         _claim(_from);
 
         Stake storage stake = stakeInfo[_from];
 
         stake.tokenCount++;
-        stake.startDate = block.timestamp;
+        stake.startDate = uint128(block.timestamp);
 
         tokenOwner[msg.sender][_tokenId] = _from;
 
@@ -92,15 +87,13 @@ contract Staking is IERC721Receiver, AccessControl {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(
-            nftInfo[_nft].status == uint256(Status.NOT_ACTIVE),
+            nftInfo[_nft].status == uint8(Status.NOT_ACTIVE),
             "Staking: already added"
         );
 
-        require(_nft != address(0), "Staking: zero address");
-
         nftInfo[_nft].status = isReachedThreshold(_nft, _percentageThreshold)
-            ? uint256(Status.ACTIVE)
-            : uint256(Status.WAIT);
+            ? uint8(Status.ACTIVE)
+            : uint8(Status.WAIT);
 
         nftInfo[_nft].percentageThreshold = _percentageThreshold;
 
@@ -109,24 +102,6 @@ contract Staking is IERC721Receiver, AccessControl {
 
     function claim() external {
         _claim(msg.sender);
-    }
-
-    function _claim(address _to) internal {
-        Stake storage stake = stakeInfo[_to];
-        uint256 startDate = stake.startDate;
-
-        if (startDate == 0) {
-            return;
-        }
-
-        uint256 payoutAmount = (block.timestamp - startDate) *
-            stake.tokenCount *
-            1653439153935;
-
-        stake.startDate = block.timestamp;
-        goldenNugget.mint(_to, payoutAmount);
-
-        emit Claim(_to, payoutAmount);
     }
 
     function withdrawNft(uint256 _nftId, address _nft) external {
@@ -148,12 +123,13 @@ contract Staking is IERC721Receiver, AccessControl {
 
     function isActive(address _nft) external view returns (bool) {
         Nft memory nft = nftInfo[_nft];
+        uint8 status = nft.status;
 
-        if (nft.status == uint256(Status.ACTIVE)) {
+        if (status == uint8(Status.ACTIVE)) {
             return true;
         }
 
-        if (nft.status == uint256(Status.NOT_ACTIVE)) {
+        if (status == uint8(Status.NOT_ACTIVE)) {
             return false;
         }
 
@@ -161,7 +137,7 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     function isReachedThreshold(address _nft, uint8 _percentage)
-        internal
+        private
         view
         returns (bool)
     {
@@ -170,5 +146,23 @@ contract Staking is IERC721Receiver, AccessControl {
         return
             (token.circulatingSupply() * 100) / token.maxSupply() >=
             _percentage;
+    }
+
+    function _claim(address _to) private {
+        Stake storage stake = stakeInfo[_to];
+        uint128 startDate = stake.startDate;
+
+        if (startDate == 0) {
+            return;
+        }
+
+        uint256 payoutAmount = (block.timestamp - startDate) *
+            stake.tokenCount *
+            1653439153935;
+
+        stake.startDate = uint128(block.timestamp);
+        goldenNugget.mint(_to, payoutAmount);
+
+        emit Claim(_to, payoutAmount);
     }
 }

@@ -12,7 +12,7 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
     address public fundingWallet;
     uint256 public deadline;
     uint256 public constant DISCOUNT_PRICE = 400000000000000000;
-    uint256 public constant UNDISCOUNT_PRICE = 500000000000000000;
+    uint256 public constant BASE_PRICE = 500000000000000000;
 
     uint256 private totalSupply = 0;
     uint256 private constant MAX_SUPPLY = 10005;
@@ -47,7 +47,7 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
             return DISCOUNT_PRICE;
         }
 
-        return UNDISCOUNT_PRICE;
+        return BASE_PRICE;
     }
 
     function buy(uint256 _tokenId) external payable {
@@ -92,19 +92,6 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
         _addWhitelists(users);
     }
 
-    function _addWhitelists(address[] memory users) internal onlyOwner {
-        uint256 length = users.length;
-        require(length <= 256, "NFT: whitelist too long!");
-        for (uint256 i = 0; i < length; i++) {
-            address user = users[i];
-            require(user != address(0), "NFT: user is zero address");
-            require(_isWhitelisted[user] == false, "NFT: user whitelisted");
-            _isWhitelisted[user] = true;
-        }
-
-        emit AddedToWhitelist(users);
-    }
-
     function removeWhitelists(address[] calldata users) external onlyOwner {
         uint256 length = users.length;
         require(length <= 256, "NFT: whitelist too long");
@@ -128,5 +115,18 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
 
     function circulatingSupply() external view override returns (uint256) {
         return totalSupply;
+    }
+
+    function _addWhitelists(address[] memory users) private onlyOwner {
+        uint256 length = users.length;
+        require(length <= 256, "NFT: whitelist too long!");
+        for (uint256 i = 0; i < length; i++) {
+            address user = users[i];
+            require(user != address(0), "NFT: user is zero address");
+            require(_isWhitelisted[user] == false, "NFT: user whitelisted");
+            _isWhitelisted[user] = true;
+        }
+
+        emit AddedToWhitelist(users);
     }
 }
