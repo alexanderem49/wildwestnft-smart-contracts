@@ -11,7 +11,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract Staking is IERC721Receiver, AccessControl {
     GoldenNugget public goldenNugget;
 
-    mapping(address => mapping(uint256 => Deposit)) public depositInfo;
+    mapping(address => mapping(uint256 => address)) public tokenOwner;
+    mapping(address => Stake) public stakeInfo;
     mapping(address => Nft) public nftInfo;
 
     enum Status {
@@ -20,8 +21,8 @@ contract Staking is IERC721Receiver, AccessControl {
         WAIT
     }
 
-    struct Deposit {
-        address ownerNft;
+    struct Stake {
+        uint256 tokenCount;
         uint256 startDate;
     }
 
@@ -30,7 +31,7 @@ contract Staking is IERC721Receiver, AccessControl {
         uint256 status;
     }
 
-    event NftAdded(address indexed nftContract, uint256 startDate);
+    event NftAdded(address indexed nftContract);
 
     event Claim(address indexed user, uint256 payoutAmount);
 
@@ -72,7 +73,14 @@ contract Staking is IERC721Receiver, AccessControl {
 
         require(nft.status == uint256(Status.ACTIVE), "Staking: not started");
 
-        depositInfo[msg.sender][_tokenId] = Deposit(_from, block.timestamp);
+        claim(_from);
+
+        Stake storage stake = stakeInfo[_from];
+
+        stake.tokenCount++;
+        stake.startDate = block.timestamp;
+
+        tokenOwner[msg.sender][_tokenId] = _from;
 
         emit ERC721Received(_tokenId, msg.sender, _from);
 
@@ -83,6 +91,11 @@ contract Staking is IERC721Receiver, AccessControl {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(
+            nftInfo[_nft].status == uint256(Status.NOT_ACTIVE),
+            "Staking: already added"
+        );
+
         require(_nft != address(0), "Staking: zero address");
 
         nftInfo[_nft].status = isReachedThreshold(_nft, _percentageThreshold)
@@ -91,38 +104,38 @@ contract Staking is IERC721Receiver, AccessControl {
 
         nftInfo[_nft].percentageThreshold = _percentageThreshold;
 
-        emit NftAdded(_nft, block.timestamp);
+        emit NftAdded(_nft);
     }
 
-    function claim(uint256 _nftId, address _nft) public {
-        Deposit storage deposit = depositInfo[_nft][_nftId];
+    function claim(address _to) public {
+        Stake storage stake = stakeInfo[_to];
+        uint256 startDate = stake.startDate;
 
-        uint256 payoutAmount = getPayoutAmount(deposit.startDate);
-
-        if (payoutAmount > 0) {
-            deposit.startDate = block.timestamp;
-            goldenNugget.mint(msg.sender, payoutAmount);
-
-            emit Claim(msg.sender, payoutAmount);
-        }
-    }
-
-    function getPayoutAmount(uint256 _startDate) public view returns (uint256) {
-        if (_startDate == 0) {
-            return 0;
+        if (startDate == 0) {
+            return;
         }
 
-        return (block.timestamp - _startDate) * 1653439153935;
+        uint256 payoutAmount = (block.timestamp - startDate) *
+            stake.tokenCount *
+            1653439153935;
+
+        stake.startDate = block.timestamp;
+        goldenNugget.mint(_to, payoutAmount);
+
+        emit Claim(_to, payoutAmount);
     }
 
     function withdrawNft(uint256 _nftId, address _nft) external {
-        Deposit storage deposit = depositInfo[_nft][_nftId];
+        require(
+            tokenOwner[_nft][_nftId] == msg.sender,
+            "Staking: not owner NFT"
+        );
 
-        require(deposit.ownerNft == msg.sender, "Staking: not owner NFT");
+        claim(msg.sender);
 
-        claim(_nftId, _nft);
+        stakeInfo[msg.sender].tokenCount--;
 
-        delete depositInfo[_nft][_nftId];
+        delete tokenOwner[_nft][_nftId];
 
         IERC721(_nft).safeTransferFrom(address(this), msg.sender, _nftId);
 
@@ -130,15 +143,17 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     function isActive(address _nft) external view returns (bool) {
-        if (nftInfo[_nft].status == uint256(Status.ACTIVE)) {
+        Nft memory nft = nftInfo[_nft];
+
+        if (nft.status == uint256(Status.ACTIVE)) {
             return true;
         }
 
-        if (nftInfo[_nft].status == uint256(Status.NOT_ACTIVE)) {
+        if (nft.status == uint256(Status.NOT_ACTIVE)) {
             return false;
         }
 
-        return isReachedThreshold(_nft, nftInfo[_nft].percentageThreshold);
+        return isReachedThreshold(_nft, nft.percentageThreshold);
     }
 
     function isReachedThreshold(address _nft, uint8 _percentage)
@@ -146,8 +161,10 @@ contract Staking is IERC721Receiver, AccessControl {
         view
         returns (bool)
     {
+        ITokenSupplyData token = ITokenSupplyData(_nft);
+
         return
-            ((ITokenSupplyData(_nft).circulatingSupply() * 100) /
-                ITokenSupplyData(_nft).maxSupply()) >= _percentage;
+            (token.circulatingSupply() * 100) / token.maxSupply() >=
+            _percentage;
     }
 }

@@ -14,7 +14,7 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
     uint256 public constant DISCOUNT_PRICE = 400000000000000000;
     uint256 public constant UNDISCOUNT_PRICE = 500000000000000000;
 
-    uint256 private totalSupply;
+    uint256 private totalSupply = 0;
     uint256 private constant MAX_SUPPLY = 10005;
 
     mapping(address => bool) private _isWhitelisted;
@@ -40,7 +40,6 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
         fundingWallet = fundingWallet_;
         deadline = deadline_;
         _addWhitelists(users_);
-        totalSupply = 0;
     }
 
     function priceFor(address _user) public view returns (uint256) {
@@ -123,17 +122,11 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
         return _isWhitelisted[user];
     }
 
-    function maxSupply() external view virtual override returns (uint256) {
+    function maxSupply() external pure override returns (uint256) {
         return MAX_SUPPLY;
     }
 
-    function circulatingSupply()
-        external
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function circulatingSupply() external view override returns (uint256) {
         return totalSupply;
     }
 }
