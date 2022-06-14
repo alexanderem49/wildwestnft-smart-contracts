@@ -199,7 +199,7 @@ describe('Staking contract', () => {
       const stakeInfoBefore = await staking.stakeInfo(owner.address);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
 
-      const tx = await staking.claim(owner.address);
+      const tx = await staking.claim();
 
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
       const stakeInfoAfter = await staking.stakeInfo(owner.address);
@@ -228,7 +228,7 @@ describe('Staking contract', () => {
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
       const stakeInfoBefore = await staking.stakeInfo(owner.address);
 
-      const tx = await staking.claim(owner.address);
+      const tx = await staking.claim();
 
       const txTimestamp = await getBlockTimestamp(tx);
       const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(1653439153935);

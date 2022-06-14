@@ -73,7 +73,7 @@ contract Staking is IERC721Receiver, AccessControl {
 
         require(nft.status == uint256(Status.ACTIVE), "Staking: not started");
 
-        claim(_from);
+        _claim(_from);
 
         Stake storage stake = stakeInfo[_from];
 
@@ -107,7 +107,11 @@ contract Staking is IERC721Receiver, AccessControl {
         emit NftAdded(_nft);
     }
 
-    function claim(address _to) public {
+    function claim() external {
+        _claim(msg.sender);
+    }
+
+    function _claim(address _to) internal {
         Stake storage stake = stakeInfo[_to];
         uint256 startDate = stake.startDate;
 
@@ -131,7 +135,7 @@ contract Staking is IERC721Receiver, AccessControl {
             "Staking: not owner NFT"
         );
 
-        claim(msg.sender);
+        _claim(msg.sender);
 
         stakeInfo[msg.sender].tokenCount--;
 
