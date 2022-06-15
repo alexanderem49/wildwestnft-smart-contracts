@@ -1,5 +1,6 @@
 import download from "download";
 import fs from "fs";
+import readline from 'readline';
 
 type NftImage = {
     id: number,
@@ -7,8 +8,7 @@ type NftImage = {
 };
 
 function printProgress(progress: string) {
-    process.stdout.clearLine(0);
-    process.stdout.cursorTo(0);
+    readline.cursorTo(process.stdout, 0);
     process.stdout.write(progress);
 }
 
@@ -37,7 +37,7 @@ async function main() {
             size: fileSizeInBytes
         });
 
-        printProgress(`Cheching image id ${i}, size is ${fileSizeInBytes}`);
+        printProgress(`Checking image id ${i}, size is ${fileSizeInBytes}`);
     }
     console.log();
     fs.writeFile('sizes.json', JSON.stringify(sizes, null, 4), function (err) {
