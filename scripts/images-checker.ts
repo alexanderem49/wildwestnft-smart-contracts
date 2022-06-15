@@ -6,17 +6,26 @@ type NftImage = {
     size: number
 };
 
+function printProgress(progress: string) {
+    process.stdout.clearLine(0);
+    process.stdout.cursorTo(0);
+    process.stdout.write(progress);
+}
+
 async function main() {
     const sizes: NftImage[] = [];
+    console.log();
     for (let i = 1; i <= 10005; i++) {
         const folder = `img`;
-        const filePath = `${folder}\\${i}.webp`;
-        const url = `https://upload-ww.mypinata.cloud/ipfs/QmUJKTnPnv3ENRhvw8TKYRU8NipGWAHDDJF9JTXpBokME8/${i}.webp`;
+        const filePath = `${folder}/${i}.webp`;
+        const url = `https://upload-ww.mypinata.cloud/ipfs/QmUmTsMyDEdgk6jVhZJwB9ke1rEFtJZgytHyqMivVudqsa/${i}.webp`;
 
         try {
             await download(url, folder);
         } catch (error) {
+            console.log();
             console.log("!!! Something is wrong with file", i);
+            console.log();
             continue;
         }
 
@@ -27,7 +36,10 @@ async function main() {
             id: i,
             size: fileSizeInBytes
         });
+
+        printProgress(`Cheching image id ${i}, size is ${fileSizeInBytes}`);
     }
+    console.log();
     fs.writeFile('sizes.json', JSON.stringify(sizes, null, 4), function (err) {
         if (err) return console.log(err);
         console.log('Write done');
