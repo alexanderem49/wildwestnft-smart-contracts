@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.14;
+pragma solidity 0.8.15;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -15,6 +15,11 @@ contract GoldenNugget is ERC20, AccessControl {
         }
     }
 
+    /**
+     * @notice Mints tokens by user.
+     * @param _user The user address.
+     * @param _amount The amount of minting.
+     */
     function mint(address _user, uint256 _amount)
         external
         onlyRole(MINTER_ROLE)
