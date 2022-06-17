@@ -21,8 +21,8 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
     mapping(address => bool) private _isWhitelisted;
 
     event PermanentURI(string _value, uint256 indexed _id);
-    event AddedToWhitelist(address[] users);
-    event RemovedFromWhitelist(address[] users);
+    event AddedToWhitelist(address[] _users);
+    event RemovedFromWhitelist(address[] _users);
     event Bought(
         uint256 indexed _tokenId,
         address indexed _buyer,
@@ -35,12 +35,27 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
         string memory baseTokenURI_,
         address fundingWallet_,
         uint256 deadline_,
-        address[] memory users_
+        address[] memory whitelistedUsers_,
+        address[] memory giftedUsers_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
         fundingWallet = fundingWallet_;
         deadline = deadline_;
-        _addWhitelists(users_);
+        _addWhitelists(whitelistedUsers_);
+
+        uint8 userCount = 0;
+
+        for (uint256 i = 10001; i <= 10005; i++) {
+            address user = giftedUsers_[userCount];
+            // Mints token id of collection nft by user.
+            _safeMint(user, i);
+            // Increases the total supply of purchases.
+            totalSupply++;
+            userCount++;
+
+            emit Bought(i, user, 0);
+            emit PermanentURI(tokenURI(i), i);
+        }
     }
 
     /**
