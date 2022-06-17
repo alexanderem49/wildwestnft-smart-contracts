@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.14;
+pragma solidity 0.8.15;
 
 import "./GoldenNugget.sol";
 import "./interface/ITokenSupplyData.sol";
@@ -52,6 +52,12 @@ contract Staking is IERC721Receiver, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    /**
+     * @notice Checks if nft is transferred to a contract.
+     * @param _from The user address.
+     * @param _tokenId The token id of collection.
+     * @return Selector to confirm the token transfer.
+     */
     function onERC721Received(
         address,
         address _from,
@@ -60,6 +66,7 @@ contract Staking is IERC721Receiver, AccessControl {
     ) external virtual override returns (bytes4) {
         Nft storage nft = nftInfo[msg.sender];
 
+        // Updates the status to active if percentage threshold is reached.
         if (nft.status == uint8(Status.WAIT)) {
             if (isReachedThreshold(msg.sender, nft.percentageThreshold)) {
                 nft.status = uint8(Status.ACTIVE);
@@ -67,11 +74,11 @@ contract Staking is IERC721Receiver, AccessControl {
         }
 
         require(nft.status == uint8(Status.ACTIVE), "Staking: not started");
-
+        // Payout of tokens for staking.
         _claim(_from);
 
         Stake storage stake = stakeInfo[_from];
-
+        // Increases the number of staked tokens.
         stake.tokenCount++;
         stake.startDate = uint128(block.timestamp);
 
@@ -82,6 +89,11 @@ contract Staking is IERC721Receiver, AccessControl {
         return this.onERC721Received.selector;
     }
 
+    /**
+     * @notice Registers NFT contract and sets circulating supply percentage threshold when staking becomes active.
+     * @param _nft The nft contract.
+     * @param _percentageThreshold The percentage threshold.
+     */
     function addNFT(address _nft, uint8 _percentageThreshold)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -91,6 +103,7 @@ contract Staking is IERC721Receiver, AccessControl {
             "Staking: already added"
         );
 
+        // Staking should only start when circulating supply percentage is above percentage threshold.
         nftInfo[_nft].status = isReachedThreshold(_nft, _percentageThreshold)
             ? uint8(Status.ACTIVE)
             : uint8(Status.WAIT);
@@ -100,35 +113,52 @@ contract Staking is IERC721Receiver, AccessControl {
         emit NftAdded(_nft);
     }
 
+    /**
+     * @notice Gives the user the ability to earn tokens from staking.
+     */
     function claim() external {
         _claim(msg.sender);
     }
 
+    /**
+     * @notice Gives the user the ability to earn Golden Nugget tokens from staking.
+     * @param _nftId The token id of collection nft.
+     * @param _nft The nft contract.
+     */
     function withdrawNft(uint256 _nftId, address _nft) external {
         require(
             tokenOwner[_nft][_nftId] == msg.sender,
             "Staking: not owner NFT"
         );
 
+        // Payout of tokens for staking.
         _claim(msg.sender);
-
+        // Decreases the number of staked tokens.
         stakeInfo[msg.sender].tokenCount--;
 
         delete tokenOwner[_nft][_nftId];
 
+        // Transfers token by id from staking contract to owner nft.
         IERC721(_nft).safeTransferFrom(address(this), msg.sender, _nftId);
 
         emit Withdraw(_nftId, _nft, msg.sender);
     }
 
+    /**
+     * @notice Checks if staking for specified collection is available.
+     * @param _nft The nft contract.
+     * @return Status if staking is available or not.
+     */
     function isActive(address _nft) external view returns (bool) {
         Nft memory nft = nftInfo[_nft];
         uint8 status = nft.status;
 
+        // Percentage threshold is already reached.
         if (status == uint8(Status.ACTIVE)) {
             return true;
         }
 
+        // NFT contract doesn't register.
         if (status == uint8(Status.NOT_ACTIVE)) {
             return false;
         }
@@ -136,6 +166,11 @@ contract Staking is IERC721Receiver, AccessControl {
         return isReachedThreshold(_nft, nft.percentageThreshold);
     }
 
+    /**
+     * @notice Checks if percentage threshold is reached or not.
+     * @param _nft The nft contract.
+     * @return Status if threshold is reached or not.
+     */
     function isReachedThreshold(address _nft, uint8 _percentage)
         private
         view
@@ -148,6 +183,10 @@ contract Staking is IERC721Receiver, AccessControl {
             _percentage;
     }
 
+    /**
+     * @notice Gives the user the ability to earn tokens from staking.
+     * @param _to The user address.
+     */
     function _claim(address _to) private {
         Stake storage stake = stakeInfo[_to];
         uint128 startDate = stake.startDate;
@@ -155,12 +194,14 @@ contract Staking is IERC721Receiver, AccessControl {
         if (startDate == 0) {
             return;
         }
-
+        // Returns available amount of Golden Nuggets to claim.
         uint256 payoutAmount = (block.timestamp - startDate) *
             stake.tokenCount *
-            1653439153935;
+            1653439153935; /// 10**18/60*60*24*7.
 
+        // Updates the start date for the next payout calculation.
         stake.startDate = uint128(block.timestamp);
+        // Payout of tokens for staking.
         goldenNugget.mint(_to, payoutAmount);
 
         emit Claim(_to, payoutAmount);
