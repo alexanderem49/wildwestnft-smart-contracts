@@ -31,20 +31,20 @@ contract Staking is IERC721Receiver, AccessControl {
         uint8 status;
     }
 
-    event NftAdded(address indexed nftContract);
+    event NftAdded(address indexed _nftContract);
 
-    event Claim(address indexed user, uint256 payoutAmount);
+    event Claim(address indexed _user, uint256 _payoutAmount);
 
     event ERC721Received(
-        uint256 indexed nftId,
-        address indexed nftContract,
-        address from
+        uint256 indexed _nftId,
+        address indexed _nftContract,
+        address _from
     );
 
     event Withdraw(
-        uint256 indexed nftId,
-        address indexed nftContract,
-        address to
+        uint256 indexed _nftId,
+        address indexed _nftContract,
+        address _to
     );
 
     constructor(GoldenNugget goldenNugget_) {

@@ -1,10 +1,11 @@
 import hre, { ethers } from "hardhat";
+import { NFT } from "../typechain/NFT";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 async function main() {
+  let nft: NFT;
   let fundingWallet: SignerWithAddress;
-
   let addrs: SignerWithAddress[];
   const name = "Wild West NFT";
   const symbol = "WWN";
@@ -13,9 +14,11 @@ async function main() {
 
   [fundingWallet, ...addrs] = await ethers.getSigners();
 
-  const NFT = (await ethers.getContractFactory('NFT')) as NFT__factory;
-  const nft = await NFT.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, []);
+  const whitedlistedUsers = [addrs[0].address];
+  const giftedUsers = [addrs[0].address, addrs[1].address, addrs[2].address, addrs[3].address, addrs[4].address];
 
+  const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
+  nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers, giftedUsers);
   await nft.deployed();
 
   console.log("NFT deployed to:", nft.address);

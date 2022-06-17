@@ -33,6 +33,7 @@ describe('Staking contract', () => {
   const baseTokenURI = "ipfs://QmPShXrfttmnNtE9V6QmcrR8F29V7HMuMrsRyQyUXs35id/";
   const zeroAddress = '0x0000000000000000000000000000000000000000';
   const percentageThreshold = 1;
+  const neededTokenCount = 96;
 
   beforeEach(async () => {
     [owner, addr1, addr2, addr3, fundingWallet, ...addrs] = await ethers.getSigners();
@@ -44,9 +45,11 @@ describe('Staking contract', () => {
     const blockNumBefore = await ethers.provider.getBlockNumber();
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
     const deadline = blockBefore.timestamp + 86400;
+    const whitedlistedUsers = [addr3.address];
+    const giftedUsers = [addrs[0].address, addrs[1].address, addrs[2].address, addrs[3].address, addrs[4].address];
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, [addr3.address]);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers, giftedUsers);
     await nft.deployed();
 
     const Staking = (await ethers.getContractFactory('Staking')) as Staking__factory;
@@ -55,12 +58,12 @@ describe('Staking contract', () => {
   });
 
   describe('transfers', () => {
-    const tokenId = 101;
+    let tokenId = neededTokenCount;
 
     beforeEach(async () => {
       const price = await nft.priceFor(owner.address);
 
-      for (let i = 1; i < tokenId; i++) {
+      for (let i = 1; i < neededTokenCount; i++) {
         await nft.buy(i, { value: price });
       }
     });
@@ -103,8 +106,8 @@ describe('Staking contract', () => {
       const price = await nft.priceFor(owner.address);
       await nft.buy(tokenId, { value: price });
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
-      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 99);
-      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 100);
+      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 2);
+      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 1);
 
       const ownerNftBefore = await nft.ownerOf(tokenId);
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
@@ -136,17 +139,17 @@ describe('Staking contract', () => {
     })
 
     it('rejects transfering when nft is not received', async () => {
-      await expect(staking.onERC721Received(addr2.address, addr1.address, tokenId, "0x")).to.be.reverted;
+      await expect(staking.onERC721Received(addr2.address, addr1.address, tokenId - 1, "0x")).to.be.reverted;
     })
 
     it('rejects transfering when nft added, but not started', async () => {
       await staking.addNFT(nft.address, percentageThreshold);
 
-      await expect(nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 100)).to.be.revertedWith('Staking: not started');
+      await expect(nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 1)).to.be.revertedWith('Staking: not started');
     })
 
-    it('rejects transfering rejects transfering when nft not added', async () => {
-      await expect(nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, 100)).to.be.revertedWith('Staking: not started');
+    it('rejects transfering when nft not added', async () => {
+      await expect(nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 1)).to.be.revertedWith('Staking: not started');
     })
   })
 
@@ -166,7 +169,7 @@ describe('Staking contract', () => {
     it('adds NFT while percentage threshold reached', async () => {
       const price = await nft.priceFor(owner.address);
 
-      for (let i = 1; i < 102; i++) {
+      for (let i = 1; i <= neededTokenCount; i++) {
         await nft.buy(i, { value: price });
       }
 
@@ -211,7 +214,7 @@ describe('Staking contract', () => {
     it('claims with rewards successfully', async () => {
       const price = await nft.priceFor(owner.address);
 
-      for (let i = 1; i < 102; i++) {
+      for (let i = 1; i <= neededTokenCount; i++) {
         await nft.buy(i, { value: price });
       }
 
@@ -249,7 +252,7 @@ describe('Staking contract', () => {
     beforeEach(async () => {
       const price = await nft.priceFor(addr1.address);
 
-      for (let i = 1; i < 102; i++) {
+      for (let i = 1; i <= neededTokenCount; i++) {
         await nft.connect(addr1).buy(i, { value: price });
       }
 
@@ -312,7 +315,7 @@ describe('Staking contract', () => {
     it('checks is active while staking started some time before', async () => {
       const price = await nft.priceFor(owner.address);
 
-      for (let i = 1; i < 102; i++) {
+      for (let i = 1; i <= neededTokenCount; i++) {
         await nft.buy(i, { value: price });
       }
 
@@ -326,7 +329,7 @@ describe('Staking contract', () => {
 
       await staking.addNFT(nft.address, percentageThreshold);
 
-      for (let i = 1; i < 102; i++) {
+      for (let i = 1; i <= neededTokenCount; i++) {
         await nft.buy(i, { value: price });
       }
 

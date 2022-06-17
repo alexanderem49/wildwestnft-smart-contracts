@@ -18,6 +18,7 @@ describe('NFT contract', () => {
   let fundingWallet: SignerWithAddress;
   let addrs: SignerWithAddress[];
   let deployTx: any;
+  let giftedUsers: any;
 
   const name = "Wild West NFT";
   const symbol = "WWN";
@@ -32,9 +33,11 @@ describe('NFT contract', () => {
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
     const timestampBefore = blockBefore.timestamp;
     const deadline = timestampBefore + 86400;
+    const whitedlistedUsers = [addr3.address];
+    giftedUsers = [addrs[0].address, addrs[1].address, addrs[2].address, addrs[3].address, addrs[4].address];
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, [addr3.address]);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers, giftedUsers);
     deployTx = await nft.deployed();
   });
 
@@ -61,7 +64,18 @@ describe('NFT contract', () => {
     })
 
     it('should set circulating supply', async () => {
-      expect(await nft.circulatingSupply()).to.equal(0);
+      expect(await nft.circulatingSupply()).to.equal(giftedUsers.length);
+    })
+
+    it('should set circulating supply', async () => {
+      let userCount = 0;
+
+      for (let i = 10001; i <= 10005; i++) {
+        const uri = await nft.tokenURI(i);
+
+        expect(deployTx).to.emit(nft, "Bought").withArgs(i, giftedUsers[userCount], 0)
+          .and.to.emit(nft, "PermanentURI").withArgs(uri, i);
+      }
     })
   });
 
