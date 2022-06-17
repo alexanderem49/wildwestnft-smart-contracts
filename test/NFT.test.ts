@@ -4,7 +4,6 @@ import { parseUnits } from "@ethersproject/units";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
 
 async function incrementNextBlockTimestamp(amount: number): Promise<void> {
   return ethers.provider.send("evm_increaseTime", [amount]);
@@ -22,18 +21,20 @@ describe('NFT contract', () => {
 
   const name = "Wild West NFT";
   const symbol = "WWN";
-  const baseTokenURI = "ipfs://bafkreib7rk44lfgqzt6jfvma4khx6sgag6edmp4d2avt67flk5wueqfjc4";
+  const baseTokenURI = "ipfs://bafkreib7rk44lfgqzt6jfvma4khx6sgag6edmp4d2avt67flk5wueqfjc4/";
   const zeroAddress = '0x0000000000000000000000000000000000000000';
+  const maxSupply = 10005;
 
   beforeEach(async () => {
     [owner, addr1, addr2, addr3, fundingWallet, ...addrs] = await ethers.getSigners();
 
+    const blockNumBefore = await ethers.provider.getBlockNumber();
+    const blockBefore = await ethers.provider.getBlock(blockNumBefore);
+    const timestampBefore = blockBefore.timestamp;
+    const deadline = timestampBefore + 86400;
+
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-
-    const deadline = Math.round((new Date().getTime() + 6000) / 1000);
-
     nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, [addr3.address]);
-
     deployTx = await nft.deployed();
   });
 
@@ -58,6 +59,10 @@ describe('NFT contract', () => {
       expect(await nft.isWhitelisted(addr3.address)).to.equal(true);
       expect(deployTx).to.emit(nft, "AddedToWhitelist").withArgs([addr3.address]);
     })
+
+    it('should set circulating supply', async () => {
+      expect(await nft.circulatingSupply()).to.equal(0);
+    })
   });
 
   describe('gets price', async () => {
@@ -74,7 +79,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
       await nft.addWhitelists([addr1.address]);
 
@@ -83,7 +88,7 @@ describe('NFT contract', () => {
     })
 
     it('gets price for !whitelisted user and deadline finished', async () => {
-      await incrementNextBlockTimestamp(6001);
+      await incrementNextBlockTimestamp(86401);
       await ethers.provider.send("evm_mine", []);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(false);
@@ -115,6 +120,7 @@ describe('NFT contract', () => {
     it('buys NFT successfully', async () => {
       const addr1BalanceBefore = await ethers.provider.getBalance(addr1.address);
       const fundingWalletBalanceBefore = await ethers.provider.getBalance(fundingWallet.address);
+      const circulatingSupplyBefore = await nft.circulatingSupply();
 
       const price = await nft.priceFor(addr1.address);
 
@@ -122,13 +128,17 @@ describe('NFT contract', () => {
 
       const minedTx = await tx.wait();
       const fee = minedTx.gasUsed.mul(minedTx.effectiveGasPrice);
+      const uri = await nft.tokenURI(tokenId);
 
       const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
       const fundingWalletBalanceAfter = await ethers.provider.getBalance(fundingWallet.address);
+      const circulatingSupplyAfter = await nft.circulatingSupply();
 
+      expect(circulatingSupplyAfter).to.equal(circulatingSupplyBefore.add(1));
       expect(addr1BalanceAfter).to.equal(addr1BalanceBefore.sub(price).sub(fee));
       expect(fundingWalletBalanceAfter).to.equal(fundingWalletBalanceBefore.add(price));
       expect(tx).to.emit(nft, "Bought").withArgs(tokenId, addr1.address, price);
+      expect(tx).to.emit(nft, "PermanentURI").withArgs(uri, tokenId);
     })
 
     it('rejects buying NFT while invalid value', async () => {
@@ -232,6 +242,12 @@ describe('NFT contract', () => {
 
     it('rejects re-deletion already !whitelisted user', async () => {
       await expect(nft.removeWhitelists([addr1.address])).to.be.revertedWith('NFT: user !whitelisted');
+    })
+  })
+
+  describe('gets token supply data', async () => {
+    it('gets max supply', async () => {
+      expect(await nft.maxSupply()).to.equal(maxSupply);
     })
   })
 });
