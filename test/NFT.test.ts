@@ -26,6 +26,8 @@ describe('NFT contract', () => {
   const baseTokenURI = "ipfs://bafkreib7rk44lfgqzt6jfvma4khx6sgag6edmp4d2avt67flk5wueqfjc4/";
   const zeroAddress = '0x0000000000000000000000000000000000000000';
   const maxSupply = 10005;
+  const royaltyFee = 500;
+  const feeDenominator = 10000;
 
   beforeEach(async () => {
     [owner, addr1, addr2, addr3, fundingWallet, ...addrs] = await ethers.getSigners();
@@ -80,17 +82,35 @@ describe('NFT contract', () => {
     })
   });
 
+  describe('royalty', async () => {
+    it('supports royalty', async () => {
+      const eip2981Interface = "0x2a55205a";
+      expect(await nft.supportsInterface(eip2981Interface)).to.be.true;
+    })
+
+    it('gets royalty info', async () => {
+      const tokenId = 1;
+      const tokenPrice = parseUnits("0.08", 18);
+      const [receiver, royaltyAmount] = await nft.royaltyInfo(tokenId, tokenPrice);
+
+      const expectedRoyalty = tokenPrice.mul(royaltyFee).div(feeDenominator);
+
+      expect(receiver).to.equal(fundingWallet.address);
+      expect(royaltyAmount).to.equal(expectedRoyalty);
+    })
+  })
+
   describe('gets price', async () => {
     it('gets price for whitelisted user and deadline not finish', async () => {
       await nft.addWhitelists([addr1.address]);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(true);
-      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.4", 18));
+      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.06", 18));
     })
 
     it('gets price for !whitelisted user and deadline not finish', async () => {
       expect(await nft.isWhitelisted(addr1.address)).to.equal(false);
-      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.4", 18));
+      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.06", 18));
     })
 
     it('gets price for whitelisted user and deadline finished', async () => {
@@ -99,7 +119,7 @@ describe('NFT contract', () => {
       await nft.addWhitelists([addr1.address]);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(true);
-      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.4", 18));
+      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.06", 18));
     })
 
     it('gets price for !whitelisted user and deadline finished', async () => {
@@ -107,7 +127,7 @@ describe('NFT contract', () => {
       await ethers.provider.send("evm_mine", []);
 
       expect(await nft.isWhitelisted(addr1.address)).to.equal(false);
-      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.5", 18));
+      expect(await nft.priceFor(addr1.address)).to.equal(parseUnits("0.08", 18));
     })
   })
 
