@@ -4,6 +4,7 @@ import { parseUnits } from "@ethersproject/units";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { BigNumber, BigNumberish } from "ethers";
 
 async function incrementNextBlockTimestamp(amount: number): Promise<void> {
   return ethers.provider.send("evm_increaseTime", [amount]);
@@ -128,7 +129,7 @@ describe('NFT contract', () => {
     })
   })
 
-  describe('buys NFT', async () => {
+  describe('buys NFT by the token id', async () => {
     const tokenId = 1;
 
     it('buys NFT successfully', async () => {
@@ -168,6 +169,66 @@ describe('NFT contract', () => {
     })
   })
 
+  describe('buys NFT by the token ids', async () => {
+    it('buys NFT successfully', async () => {
+      let tokenIds = [];
+
+      for (let i = 0; i <= 1; i++) {
+        tokenIds[i] = i + 1
+      }
+
+      const addr1BalanceBefore = await ethers.provider.getBalance(addr1.address);
+      const fundingWalletBalanceBefore = await ethers.provider.getBalance(fundingWallet.address);
+      const circulatingSupplyBefore = await nft.circulatingSupply();
+
+      const price = (await nft.priceFor(addr1.address)).mul((String(tokenIds.length)));
+
+      const tx = await nft.connect(addr1).buyBulk(tokenIds, { value: price });
+
+      const minedTx = await tx.wait();
+      const fee = minedTx.gasUsed.mul(minedTx.effectiveGasPrice);
+
+      const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
+      const fundingWalletBalanceAfter = await ethers.provider.getBalance(fundingWallet.address);
+      const circulatingSupplyAfter = await nft.circulatingSupply();
+
+      expect(circulatingSupplyAfter).to.equal(circulatingSupplyBefore.add((String(tokenIds.length))));
+      expect(addr1BalanceAfter).to.equal(addr1BalanceBefore.sub(price).sub(fee));
+      expect(fundingWalletBalanceAfter).to.equal(fundingWalletBalanceBefore.add(price));
+
+      for (let i = 0; i <= tokenIds.length - 1; i++) {
+        const uri = await nft.tokenURI(tokenIds[i]);
+
+        expect(tx).to.emit(nft, "Bought").withArgs(tokenIds[i], addr1.address, price);
+        expect(tx).to.emit(nft, "PermanentURI").withArgs(uri, tokenIds[i]);
+      }
+    })
+
+    it('rejects buying NFT while invalid value', async () => {
+      let tokenIds = [];
+
+      for (let i = 0; i <= 1; i++) {
+        tokenIds[i] = i + 1
+      }
+
+      const price = (await nft.priceFor(addr1.address));
+
+      await expect(nft.connect(addr1).buyBulk(tokenIds, { value: price })).to.be.revertedWith('NFT: invalid value')
+    })
+
+    it('rejects buying NFT while token id less than 1', async () => {
+      const price = (await nft.priceFor(addr1.address));
+
+      await expect(nft.connect(addr1).buyBulk([parseUnits("0", 18)], { value: price })).to.be.revertedWith('NFT: token !exists')
+    })
+
+    it('rejects buying NFT while token id more than 10005', async () => {
+      const price = (await nft.priceFor(addr1.address));
+
+      await expect(nft.connect(addr1).buyBulk([parseUnits("10006", 18)], { value: price })).to.be.revertedWith('NFT: token !exists')
+    })
+  })
+
   describe('gets token URI', async () => {
     it('gets token URI successfully', async () => {
       const tokenId = 1;
@@ -180,6 +241,21 @@ describe('NFT contract', () => {
 
     it('rejects nonexistent token', async () => {
       await expect(nft.tokenURI(parseUnits("1000", 18))).to.be.revertedWith('ERC721Metadata: token !exists');
+    })
+  })
+
+  describe('checks token id on existence', async () => {
+    const tokenId = 1;
+
+    it('checks token id on existence if it is true', async () => {
+      const price = await nft.priceFor(addr1.address);
+
+      await nft.connect(addr1).buy(tokenId, { value: price });
+      expect(await nft.exists(tokenId)).to.be.equal(true);
+    })
+
+    it('checks token id on existence if it is false', async () => {
+      expect(await nft.exists(tokenId)).to.be.equal(false);
     })
   })
 

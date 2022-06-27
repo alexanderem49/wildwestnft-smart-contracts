@@ -73,7 +73,7 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
     }
 
     /**
-     * @notice Buys the token by id.
+     * @notice Buys NFT by the token id.
      * @param _tokenId The token id of collection nft.
      */
     function buy(uint256 _tokenId) external payable {
@@ -91,6 +91,33 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
 
         emit Bought(_tokenId, msg.sender, price);
         emit PermanentURI(tokenURI(_tokenId), _tokenId);
+    }
+
+    /**
+     * @notice Buys NFT by the token ids.
+     * @param _tokenIds The array of token ids of collection nft.
+     */
+    function buyBulk(uint256[] calldata _tokenIds) external payable {
+        uint256 price = priceFor(msg.sender);
+        uint256 length = _tokenIds.length;
+        require(msg.value == price * length, "NFT: invalid value");
+        payable(fundingWallet).sendValue(msg.value);
+
+        for (uint256 i = 0; i < length; i++) {
+            uint256 _tokenId = _tokenIds[i];
+            require(
+                _tokenId >= 1 && _tokenId <= MAX_SUPPLY,
+                "NFT: token !exists"
+            );
+
+            // Mints token id of collection nft by user.
+            _safeMint(msg.sender, _tokenId);
+            // Increases the total supply of purchases.
+            totalSupply++;
+
+            emit Bought(_tokenId, msg.sender, price);
+            emit PermanentURI(tokenURI(_tokenId), _tokenId);
+        }
     }
 
     /**
@@ -123,6 +150,15 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
                     ".json"
                 )
             );
+    }
+
+    /**
+     * @notice Checks token id on existence.
+     * @param _tokenId The token id of collection nft.
+     * @return Status if token id is exist or not.
+     */
+    function exists(uint256 _tokenId) external view returns (bool) {
+        return _exists(_tokenId);
     }
 
     /**
