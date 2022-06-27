@@ -2,18 +2,18 @@
 pragma solidity 0.8.15;
 
 import "./interface/ITokenSupplyData.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NFT is ERC721, Ownable, ITokenSupplyData {
+contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     using Address for address payable;
 
     string public baseTokenURI;
     address public fundingWallet;
     uint256 public deadline;
 
-    uint256 public constant DISCOUNT_PRICE = 400000000000000000;
-    uint256 public constant BASE_PRICE = 500000000000000000;
+    uint256 public constant DISCOUNT_PRICE = 60000000000000000;
+    uint256 public constant BASE_PRICE = 80000000000000000;
 
     uint256 private totalSupply = 0;
     uint256 private constant MAX_SUPPLY = 10005;
@@ -41,6 +41,7 @@ contract NFT is ERC721, Ownable, ITokenSupplyData {
         baseTokenURI = baseTokenURI_;
         fundingWallet = fundingWallet_;
         deadline = deadline_;
+        _setDefaultRoyalty(fundingWallet_, 500);
         _addWhitelists(whitelistedUsers_);
 
         uint8 userCount = 0;
