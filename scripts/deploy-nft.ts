@@ -21,10 +21,9 @@ async function main() {
   [fundingWallet, ...addrs] = await ethers.getSigners();
 
   const whitedlistedUsers = [addrs[0].address];
-  const giftedUsers = [addrs[0].address, addrs[1].address, addrs[2].address, addrs[3].address, addrs[4].address];
 
   const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-  nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers, giftedUsers);
+  nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers);
   await nft.deployed();
 
   console.log("NFT deployed to:", nft.address);
@@ -33,7 +32,7 @@ async function main() {
 
   await hre.run("verify:verify", {
     address: nft.address,
-    constructorArguments: [name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers, giftedUsers],
+    constructorArguments: [name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers],
   });
 }
 
