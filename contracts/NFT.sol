@@ -45,7 +45,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
         _addWhitelists(whitelistedUsers_);
 
         for (uint16 i = 10001; i <= 10005; i++) {
-            // Mints token id of collection nft by user.
+            // Mints token id of collection nft.
             _safeMint(msg.sender, i);
 
             emit Bought(i, msg.sender, 0);
@@ -215,7 +215,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @notice Adds users to whitelist.
      * @param _users The array of user address.
      */
-    function _addWhitelists(address[] memory _users) private onlyOwner {
+    function _addWhitelists(address[] memory _users) private {
         uint256 length = _users.length;
         require(length <= 256, "NFT: whitelist too long!");
         for (uint8 i = 0; i < length; i++) {
