@@ -20,6 +20,13 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    // added forking for ENS resolving in tests
+    hardhat: {
+      chainId: 1,
+      forking: {
+        url: process.env.MAINNET_URL as string,
+      }
+    },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
       accounts: {

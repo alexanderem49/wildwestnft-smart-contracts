@@ -1,4 +1,5 @@
-//SPDX-License-Identifier: MIT
+// Github source: https://github.com/alexanderem49/wildwestnft-smart-contracts
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 import "./interface/ITokenSupplyData.sol";
@@ -8,15 +9,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     using Address for address payable;
 
-    string public baseTokenURI;
+    uint64 public constant DISCOUNT_PRICE = 60000000000000000;
+    uint64 public constant BASE_PRICE = 80000000000000000;
+    uint16 private constant MAX_SUPPLY = 10005;
+
     address public fundingWallet;
-    uint256 public deadline;
-
-    uint256 public constant DISCOUNT_PRICE = 60000000000000000;
-    uint256 public constant BASE_PRICE = 80000000000000000;
-
-    uint256 private totalSupply = 0;
-    uint256 private constant MAX_SUPPLY = 10005;
+    uint32 public deadline;
+    uint16 private totalSupply = 0;
+    string public baseTokenURI;
 
     mapping(address => bool) private _isWhitelisted;
 
@@ -24,9 +24,9 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     event AddedToWhitelist(address[] _users);
     event RemovedFromWhitelist(address[] _users);
     event Bought(
-        uint256 indexed _tokenId,
+        uint16 indexed _tokenId,
         address indexed _buyer,
-        uint256 _price
+        uint64 _price
     );
 
     constructor(
@@ -34,29 +34,25 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
         string memory symbol_,
         string memory baseTokenURI_,
         address fundingWallet_,
-        uint256 deadline_,
-        address[] memory whitelistedUsers_,
-        address[] memory giftedUsers_
+        uint32 deadline_,
+        address[] memory whitelistedUsers_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
         fundingWallet = fundingWallet_;
         deadline = deadline_;
+
         _setDefaultRoyalty(fundingWallet_, 500);
         _addWhitelists(whitelistedUsers_);
 
-        uint8 userCount = 0;
-
-        for (uint256 i = 10001; i <= 10005; i++) {
-            address user = giftedUsers_[userCount];
+        for (uint16 i = 10001; i <= 10005; i++) {
             // Mints token id of collection nft by user.
-            _safeMint(user, i);
-            // Increases the total supply of purchases.
-            totalSupply++;
-            userCount++;
+            _safeMint(msg.sender, i);
 
-            emit Bought(i, user, 0);
+            emit Bought(i, msg.sender, 0);
             emit PermanentURI(tokenURI(i), i);
         }
+        // Increase the total supply of purchases.
+        totalSupply = 5;
     }
 
     /**
@@ -64,8 +60,11 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @param _user The user address.
      * @return Price for the user.
      */
-    function priceFor(address _user) public view returns (uint256) {
-        // Before deadline any user should be able to buy NFT at a discount. After deadline any whitelisted user should able to buy NFT at a discount, no matter what time it is. But any non-whitelisted user should be able to buy NFT at the base price.
+    function priceFor(address _user) public view returns (uint64) {
+        // Before deadline any user should be able to buy NFT at a discount.
+        // After deadline any whitelisted user should able to buy NFT at a
+        // discount, no matter what time it is. But any non-whitelisted user
+        // should be able to buy NFT at the base price.
         if (block.timestamp < deadline || _isWhitelisted[_user]) {
             return DISCOUNT_PRICE;
         }
@@ -77,11 +76,11 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @notice Buys NFT by the token id.
      * @param _tokenId The token id of collection nft.
      */
-    function buy(uint256 _tokenId) external payable {
+    function buy(uint16 _tokenId) external payable {
         // Limits of collection nft.
         require(_tokenId >= 1 && _tokenId <= MAX_SUPPLY, "NFT: token !exists");
 
-        uint256 price = priceFor(msg.sender);
+        uint64 price = priceFor(msg.sender);
         require(msg.value == price, "NFT: invalid value");
         // Transfers a payment from a user to a funding wallet.
         payable(fundingWallet).sendValue(msg.value);
@@ -98,14 +97,14 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @notice Buys NFT by the token ids.
      * @param _tokenIds The array of token ids of collection nft.
      */
-    function buyBulk(uint256[] calldata _tokenIds) external payable {
-        uint256 price = priceFor(msg.sender);
-        uint256 length = _tokenIds.length;
+    function buyBulk(uint16[] calldata _tokenIds) external payable {
+        uint64 price = priceFor(msg.sender);
+        uint16 length = uint16(_tokenIds.length);
         require(msg.value == price * length, "NFT: invalid value");
         payable(fundingWallet).sendValue(msg.value);
 
-        for (uint256 i = 0; i < length; i++) {
-            uint256 _tokenId = _tokenIds[i];
+        for (uint16 i = 0; i < length; i++) {
+            uint16 _tokenId = _tokenIds[i];
             require(
                 _tokenId >= 1 && _tokenId <= MAX_SUPPLY,
                 "NFT: token !exists"
@@ -113,12 +112,12 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
 
             // Mints token id of collection nft by user.
             _safeMint(msg.sender, _tokenId);
-            // Increases the total supply of purchases.
-            totalSupply++;
 
             emit Bought(_tokenId, msg.sender, price);
             emit PermanentURI(tokenURI(_tokenId), _tokenId);
         }
+        // Increases the total supply of purchases.
+        totalSupply += length;
     }
 
     /**
@@ -177,7 +176,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     function removeWhitelists(address[] calldata _users) external onlyOwner {
         uint256 length = _users.length;
         require(length <= 256, "NFT: whitelist too long");
-        for (uint256 i = 0; i < length; i++) {
+        for (uint8 i = 0; i < length; i++) {
             address user = _users[i];
             require(user != address(0), "NFT: user is zero address");
             require(_isWhitelisted[user] == true, "NFT: user !whitelisted");
@@ -219,7 +218,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     function _addWhitelists(address[] memory _users) private onlyOwner {
         uint256 length = _users.length;
         require(length <= 256, "NFT: whitelist too long!");
-        for (uint256 i = 0; i < length; i++) {
+        for (uint8 i = 0; i < length; i++) {
             address user = _users[i];
             require(user != address(0), "NFT: user is zero address");
             require(_isWhitelisted[user] == false, "NFT: user whitelisted");
