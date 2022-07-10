@@ -45,10 +45,9 @@ describe('Staking contract', () => {
     const blockNumBefore = await ethers.provider.getBlockNumber();
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
     const deadline = blockBefore.timestamp + 86400;
-    const whitedlistedUsers = [addr3.address];
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline);
     await nft.deployed();
 
     const Staking = (await ethers.getContractFactory('Staking')) as Staking__factory;
@@ -60,18 +59,15 @@ describe('Staking contract', () => {
     let tokenId = neededTokenCount;
 
     beforeEach(async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i < neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
     });
 
     it('transfers without claim successfully', async () => {
       await staking.addNFT(nft.address, percentageThreshold);
 
-      const price = await nft.priceFor(owner.address);
-      await nft.buy(tokenId, { value: price });
+      await nft.mint(tokenId);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
 
       const ownerNftBefore = await nft.ownerOf(tokenId);
@@ -102,8 +98,7 @@ describe('Staking contract', () => {
     it('transfers with claim successfully', async () => {
       await staking.addNFT(nft.address, percentageThreshold);
 
-      const price = await nft.priceFor(owner.address);
-      await nft.buy(tokenId, { value: price });
+      await nft.mint(tokenId);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
       await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 2);
       await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 1);
@@ -166,10 +161,8 @@ describe('Staking contract', () => {
     })
 
     it('adds NFT while percentage threshold reached', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       const tx = await staking.addNFT(nft.address, percentageThreshold);
@@ -211,10 +204,8 @@ describe('Staking contract', () => {
     })
 
     it('claims with rewards successfully', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -249,10 +240,8 @@ describe('Staking contract', () => {
     const tokenId = 1;
 
     beforeEach(async () => {
-      const price = await nft.priceFor(addr1.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.connect(addr1).buy(i, { value: price });
+        await nft.connect(addr1).mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -304,18 +293,15 @@ describe('Staking contract', () => {
     })
 
     it('checks is active while staking not started', async () => {
-      const price = await nft.priceFor(addr1.address);
-      await nft.connect(addr1).buy(1, { value: price });
+      await nft.connect(addr1).mint(1);
       await staking.addNFT(nft.address, percentageThreshold);
 
       expect(false).to.equal(await staking.isActive(nft.address));
     })
 
     it('checks is active while staking started some time before', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -324,12 +310,10 @@ describe('Staking contract', () => {
     })
 
     it('checks is active while staking has just started', async () => {
-      const price = await nft.priceFor(owner.address);
-
       await staking.addNFT(nft.address, percentageThreshold);
 
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       expect(true).to.equal(await staking.isActive(nft.address));
