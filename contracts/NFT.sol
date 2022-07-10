@@ -5,7 +5,6 @@ pragma solidity 0.8.15;
 import "./interface/ITokenSupplyData.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     using Address for address payable;
