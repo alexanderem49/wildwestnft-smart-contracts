@@ -5,10 +5,15 @@ import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, BigNumberish } from "ethers";
+import { Console } from "console";
 
 async function incrementNextBlockTimestamp(amount: number): Promise<void> {
   return ethers.provider.send("evm_increaseTime", [amount]);
 }
+
+const toBytes32 = (bn: any) => {
+  return ethers.utils.hexlify(ethers.utils.zeroPad(bn.toHexString(), 32));
+};
 
 describe('NFT contract', () => {
   let nft: NFT;
@@ -133,13 +138,15 @@ describe('NFT contract', () => {
       expect(tx).to.emit(nft, "PermanentURI").withArgs(uri, tokenId);
     })
 
-    // it('rejects minting NFT while invalid value', async () => {
-    //   for (let i = 0; i <= 9000; i++) {
-    //     await nft.connect(addr1).mint(i + 1);
-    //   }
+    it('rejects minting NFT while user supply more than allowed', async () => {
+      await ethers.provider.send("hardhat_setStorageAt", [
+        nft.address,
+        "0x9",
+        "0x000023280000000662cd763c15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+      ]);
 
-    //   await expect(nft.connect(addr1).mint(tokenId)).to.be.revertedWith('NFT: mint not available')
-    // })
+      await expect(nft.connect(addr1).mint(tokenId)).to.be.revertedWith('NFT: mint not available')
+    })
 
     it('rejects minting NFT while token id less than 1', async () => {
       await expect(nft.connect(addr1).mint(0)).to.be.revertedWith('NFT: token !exists')
