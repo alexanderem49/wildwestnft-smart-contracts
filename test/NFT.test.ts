@@ -7,14 +7,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { hexZeroPad, keccak256 } from "ethers/lib/utils";
 
-async function incrementNextBlockTimestamp(amount: number): Promise<void> {
-  return ethers.provider.send("evm_increaseTime", [amount]);
-}
-
-const toBytes32 = (bn: any) => {
-  return ethers.utils.hexlify(ethers.utils.zeroPad(bn.toHexString(), 32));
-};
-
 describe('NFT contract', () => {
   let nft: NFT;
   let owner: SignerWithAddress;
