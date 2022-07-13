@@ -4,16 +4,8 @@ import { parseUnits } from "@ethersproject/units";
 import { NFT__factory } from "../typechain/factories/NFT__factory";
 import { NFT } from "../typechain/NFT";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, BigNumberish } from "ethers";
-import { Console } from "console";
-
-async function incrementNextBlockTimestamp(amount: number): Promise<void> {
-  return ethers.provider.send("evm_increaseTime", [amount]);
-}
-
-const toBytes32 = (bn: any) => {
-  return ethers.utils.hexlify(ethers.utils.zeroPad(bn.toHexString(), 32));
-};
+import { BigNumber } from "ethers";
+import { hexZeroPad, keccak256 } from "ethers/lib/utils";
 
 describe('NFT contract', () => {
   let nft: NFT;
@@ -45,6 +37,48 @@ describe('NFT contract', () => {
     nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline);
     deployTx = await nft.deployed();
   });
+
+  describe('storage layoyt', async () => {
+    it('output storage with all variables set', async () => {
+      const slotsAmount = 11;
+      const userMints = 8;
+      const bulkMintIds = [1000, 1001, 1002, 1003, 1004];
+
+      for (let index = 0; index < userMints; index++) {
+        await nft.mint(index + 1);
+      }
+
+      await nft.mintBulk(bulkMintIds);
+
+      console.log("RoyaltyInfo:_defaultRoyaltyInfo -", { receiver: fundingWallet.address, royaltyFraction: hexZeroPad("0x" + royaltyFee.toString(16), 18) });
+      console.log("string:name -", `'${await nft.name()}'`);
+      console.log("string:name -", `'${await nft.symbol()}'`);
+      console.log("address:owner -", await nft.owner());
+      console.log("uint32:deadline -", hexZeroPad('0x' + (await nft.deadline()).toString(16), 4));
+      console.log("uint16:totalSupply - ", hexZeroPad((await nft.circulatingSupply()).toHexString(), 2));
+      console.log("uint16:ownerSupply -", hexZeroPad("0x" + bulkMintIds.length.toString(16), 2));
+      console.log("uint16:userSupply -", hexZeroPad("0x" + userMints.toString(16), 2));
+      console.log("address:fundingWallet -", await nft.fundingWallet());
+      console.log("string:baseTokenURI -", `'${await nft.baseTokenURI()}'`);
+
+      for (let index = 0; index < slotsAmount; index++) {
+        const slot = await ethers.provider.getStorageAt(
+          nft.address,
+          "0x" + index.toString(16)
+        );
+        console.log("[", index, "]:", slot);
+      }
+
+      const slotWithLongString = "0x0a";
+      console.log("Printing out long array at slot", slotWithLongString);
+      for (let i = 0; i < 3; i++) {
+        console.log("[ keccak256(", slotWithLongString, ") +", i, "]: ", await ethers.provider.getStorageAt(
+          nft.address,
+          BigNumber.from(keccak256(hexZeroPad(slotWithLongString, 32))).add(i).toHexString()
+        ))
+      }
+    })
+  })
 
   describe('initial values', async () => {
     it('should set token name', async () => {
