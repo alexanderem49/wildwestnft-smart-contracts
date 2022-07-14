@@ -44,11 +44,9 @@ describe('Staking contract', () => {
 
     const blockNumBefore = await ethers.provider.getBlockNumber();
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-    const deadline = blockBefore.timestamp + 86400;
-    const whitedlistedUsers = [addr3.address];
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline, whitedlistedUsers);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address);
     await nft.deployed();
 
     const Staking = (await ethers.getContractFactory('Staking')) as Staking__factory;
@@ -60,34 +58,31 @@ describe('Staking contract', () => {
     let tokenId = neededTokenCount;
 
     beforeEach(async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i < neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
     });
 
     it('transfers without claim successfully', async () => {
       await staking.addNFT(nft.address, percentageThreshold);
 
-      const price = await nft.priceFor(owner.address);
-      await nft.buy(tokenId, { value: price });
+      await nft.mint(tokenId);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
 
       const ownerNftBefore = await nft.ownerOf(tokenId);
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoBefore = await staking.stakeInfo(owner.address);
+      const [tokenCountBefore, ,] = await staking.getStakerInfo(owner.address);
 
       const tx = await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId);
 
       const txTimestamp = await getBlockTimestamp(tx);
       const ownerNftAfter = await nft.ownerOf(tokenId);
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoAfter = await staking.stakeInfo(owner.address);
+      const [tokenCountAfter, startDateAfter,] = await staking.getStakerInfo(owner.address);
       const tokenOwner = await staking.tokenOwner(nft.address, tokenId);
 
-      expect(stakeInfoAfter.tokenCount).to.equal(stakeInfoBefore.tokenCount.add(1));
-      expect(stakeInfoAfter.startDate).to.equal(txTimestamp);
+      expect(tokenCountAfter).to.equal(tokenCountBefore.add(1));
+      expect(startDateAfter).to.equal(txTimestamp);
       expect(ownerGNBalanceAfter).to.equal(ownerGNBalanceBefore);
       expect(tokenOwner).to.equal(owner.address);
       expect(true).to.equal(ownerNftBefore == owner.address);
@@ -102,28 +97,27 @@ describe('Staking contract', () => {
     it('transfers with claim successfully', async () => {
       await staking.addNFT(nft.address, percentageThreshold);
 
-      const price = await nft.priceFor(owner.address);
-      await nft.buy(tokenId, { value: price });
+      await nft.mint(tokenId);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
       await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 2);
       await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId - 1);
 
       const ownerNftBefore = await nft.ownerOf(tokenId);
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoBefore = await staking.stakeInfo(owner.address);
+      const [tokenCountBefore, startDateBefore,] = await staking.getStakerInfo(owner.address);
 
       const tx = await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId);
 
       const txTimestamp = await getBlockTimestamp(tx);
-      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(stakeInfoBefore.tokenCount).mul(1653439153935);
+      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(startDateBefore)).mul(tokenCountBefore).mul(1653439153935);
 
       const ownerNftAfter = await nft.ownerOf(tokenId);
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoAfter = await staking.stakeInfo(owner.address);
+      const [tokenCountAfter, startDateAfter,] = await staking.getStakerInfo(owner.address);
       const tokenOwner = await staking.tokenOwner(nft.address, tokenId);
 
-      expect(stakeInfoAfter.tokenCount).to.equal(stakeInfoBefore.tokenCount.add(1));
-      expect(stakeInfoAfter.startDate).to.equal(txTimestamp);
+      expect(tokenCountAfter).to.equal(tokenCountBefore.add(1));
+      expect(startDateAfter).to.equal(txTimestamp);
       expect(tokenOwner).to.equal(owner.address);
       expect(ownerGNBalanceAfter).to.equal(ownerGNBalanceBefore.add(payoutAmount));
       expect(true).to.equal(ownerNftBefore == owner.address);
@@ -166,10 +160,8 @@ describe('Staking contract', () => {
     })
 
     it('adds NFT while percentage threshold reached', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       const tx = await staking.addNFT(nft.address, percentageThreshold);
@@ -195,26 +187,24 @@ describe('Staking contract', () => {
 
     it('claims without rewards successfully', async () => {
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoBefore = await staking.stakeInfo(owner.address);
+      const [, startDateBefore,] = await staking.getStakerInfo(owner.address);
       await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
 
       const tx = await staking.claim();
 
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoAfter = await staking.stakeInfo(owner.address);
+      const [, startDateAfter,] = await staking.getStakerInfo(owner.address);
 
       expect(ownerGNBalanceAfter).to.equal(ownerGNBalanceBefore);
-      expect(stakeInfoBefore.startDate).to.equal(stakeInfoAfter.startDate);
+      expect(startDateBefore).to.equal(startDateAfter);
 
       await expect(tx).to.not.emit(goldenNugget, "Transfer")
         .and.to.not.emit(staking, "Claim");
     })
 
     it('claims with rewards successfully', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -225,18 +215,18 @@ describe('Staking contract', () => {
       await ethers.provider.send("evm_mine", []);
 
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(owner.address);
-      const stakeInfoBefore = await staking.stakeInfo(owner.address);
+      const [tokenCountBefore, startDateBefore,] = await staking.getStakerInfo(owner.address);
 
       const tx = await staking.claim();
 
       const txTimestamp = await getBlockTimestamp(tx);
-      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(stakeInfoBefore.tokenCount).mul(1653439153935);
+      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(startDateBefore)).mul(tokenCountBefore).mul(1653439153935);
 
-      const stakeInfoAfter = await staking.stakeInfo(owner.address);
+      const [, startDateAfter,] = await staking.getStakerInfo(owner.address);
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(owner.address);
 
       expect(ownerGNBalanceAfter).to.equal(ownerGNBalanceBefore.add(payoutAmount));
-      expect(stakeInfoAfter.startDate).to.equal(txTimestamp);
+      expect(startDateAfter).to.equal(txTimestamp);
 
       await expect(tx).to.emit(goldenNugget, "Transfer")
         .withArgs(zeroAddress, owner.address, payoutAmount)
@@ -245,14 +235,41 @@ describe('Staking contract', () => {
     })
   })
 
+  describe('gets staker info', () => {
+    const tokenId = 1;
+
+    it('gets staker info successfully', async () => {
+      for (let i = 1; i <= neededTokenCount; i++) {
+        await nft.mint(i);
+      }
+
+      await staking.addNFT(nft.address, percentageThreshold);
+      await nft["safeTransferFrom(address,address,uint256)"](owner.address, staking.address, tokenId);
+      await goldenNugget.grantRole(await goldenNugget.MINTER_ROLE(), staking.address);
+
+      await incrementNextBlockTimestamp(259200);
+      await ethers.provider.send("evm_mine", []);
+
+      const tx = await staking.claim();
+
+      const [tokenCountBefore, ,] = await staking.getStakerInfo(owner.address);
+
+      const txTimestamp = await getBlockTimestamp(tx);
+
+      const [tokenCountAfter, startDateAfter, amountToPayAfter] = await staking.getStakerInfo(owner.address);
+
+      expect(amountToPayAfter).to.equal(0);
+      expect(tokenCountAfter).to.equal(tokenCountBefore);
+      expect(startDateAfter).to.equal(txTimestamp);
+    })
+  })
+
   describe('withdraws NFT', () => {
     const tokenId = 1;
 
     beforeEach(async () => {
-      const price = await nft.priceFor(addr1.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.connect(addr1).buy(i, { value: price });
+        await nft.connect(addr1).mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -267,20 +284,20 @@ describe('Staking contract', () => {
     it('withdraws NFT successfully', async () => {
       const ownerNftBefore = await nft.ownerOf(tokenId);
       const ownerGNBalanceBefore = await goldenNugget.balanceOf(addr1.address);
-      const stakeInfoBefore = await staking.stakeInfo(addr1.address);
+      const [, startDateBefore,] = await staking.getStakerInfo(addr1.address);
 
       const tx = await staking.connect(addr1).withdrawNft(tokenId, nft.address);
 
       const txTimestamp = await getBlockTimestamp(tx);
-      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(stakeInfoBefore.startDate)).mul(1653439153935);
+      const payoutAmount = (ethers.BigNumber.from(txTimestamp).sub(startDateBefore)).mul(1653439153935);
 
       const ownerGNBalanceAfter = await goldenNugget.balanceOf(addr1.address);
-      const stakeInfoAfter = await staking.stakeInfo(addr1.address);
+      const [, startDateAfter,] = await staking.getStakerInfo(addr1.address);
       const ownerNftAfter = await nft.connect(addr1).ownerOf(tokenId);
       const tokenOwner = await staking.tokenOwner(nft.address, tokenId);
 
       expect(ownerGNBalanceAfter).to.equal(ownerGNBalanceBefore.add(payoutAmount));
-      expect(stakeInfoAfter.startDate).to.equal(txTimestamp);
+      expect(startDateAfter).to.equal(txTimestamp);
       expect(true).to.equal(ownerNftBefore == staking.address);
       expect(true).to.equal(ownerNftAfter == addr1.address);
       expect(tokenOwner).to.equal(zeroAddress);
@@ -304,18 +321,15 @@ describe('Staking contract', () => {
     })
 
     it('checks is active while staking not started', async () => {
-      const price = await nft.priceFor(addr1.address);
-      await nft.connect(addr1).buy(1, { value: price });
+      await nft.connect(addr1).mint(1);
       await staking.addNFT(nft.address, percentageThreshold);
 
       expect(false).to.equal(await staking.isActive(nft.address));
     })
 
     it('checks is active while staking started some time before', async () => {
-      const price = await nft.priceFor(owner.address);
-
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       await staking.addNFT(nft.address, percentageThreshold);
@@ -324,15 +338,14 @@ describe('Staking contract', () => {
     })
 
     it('checks is active while staking has just started', async () => {
-      const price = await nft.priceFor(owner.address);
-
       await staking.addNFT(nft.address, percentageThreshold);
 
       for (let i = 1; i <= neededTokenCount; i++) {
-        await nft.buy(i, { value: price });
+        await nft.mint(i);
       }
 
       expect(true).to.equal(await staking.isActive(nft.address));
     })
   })
+
 });

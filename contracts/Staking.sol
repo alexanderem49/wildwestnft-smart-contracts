@@ -1,3 +1,4 @@
+// Github source: https://github.com/alexanderem49/wildwestnft-smart-contracts
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
@@ -12,7 +13,7 @@ contract Staking is IERC721Receiver, AccessControl {
     GoldenNugget public goldenNugget;
 
     mapping(address => mapping(uint256 => address)) public tokenOwner;
-    mapping(address => Stake) public stakeInfo;
+    mapping(address => Stake) private stakeInfo;
     mapping(address => Nft) public nftInfo;
 
     enum Status {
@@ -38,13 +39,13 @@ contract Staking is IERC721Receiver, AccessControl {
     event ERC721Received(
         uint256 indexed _nftId,
         address indexed _nftContract,
-        address _from
+        address indexed _from
     );
 
     event Withdraw(
         uint256 indexed _nftId,
         address indexed _nftContract,
-        address _to
+        address indexed _to
     );
 
     constructor(GoldenNugget goldenNugget_) {
@@ -167,6 +168,31 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     /**
+     * @notice Gets staking information.
+     * @param _user The user address.
+     * @return tokenCount The token count of staking.
+     * @return startDate The start date of staking.
+     * @return payoutAmount The payout amount from staking nft.
+     */
+    function getStakerInfo(address _user)
+        external
+        view
+        returns (
+            uint128 tokenCount,
+            uint128 startDate,
+            uint256 payoutAmount
+        )
+    {
+        Stake memory stake = stakeInfo[_user];
+
+        uint128 tokenCount_ = stake.tokenCount;
+        uint128 startDate_ = stake.startDate;
+        uint256 payoutAmount_ = getPayoutAmount(startDate, tokenCount);
+
+        return (tokenCount_, startDate_, payoutAmount_);
+    }
+
+    /**
      * @notice Checks if percentage threshold is reached or not.
      * @param _nft The nft contract.
      * @return Status if threshold is reached or not.
@@ -195,9 +221,7 @@ contract Staking is IERC721Receiver, AccessControl {
             return;
         }
         // Returns available amount of Golden Nuggets to claim.
-        uint256 payoutAmount = (block.timestamp - startDate) *
-            stake.tokenCount *
-            1653439153935; /// 10**18/60*60*24*7.
+        uint256 payoutAmount = getPayoutAmount(startDate, stake.tokenCount);
 
         // Updates the start date for the next payout calculation.
         stake.startDate = uint128(block.timestamp);
@@ -205,5 +229,18 @@ contract Staking is IERC721Receiver, AccessControl {
         goldenNugget.mint(_to, payoutAmount);
 
         emit Claim(_to, payoutAmount);
+    }
+
+    /**
+     * @notice Gets the payout amount from staking nft.
+     * @param _startDate The start date of staking.
+     * @param _tokenCount The token count of staking.
+     */
+    function getPayoutAmount(uint128 _startDate, uint128 _tokenCount)
+        private
+        view
+        returns (uint256)
+    {
+        return (block.timestamp - _startDate) * _tokenCount * 1653439153935; // 10**18/60*60*24*7.
     }
 }
