@@ -31,10 +31,9 @@ describe('NFT contract', () => {
     const blockNumBefore = await ethers.provider.getBlockNumber();
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
     const timestampBefore = blockBefore.timestamp;
-    const deadline = timestampBefore + 86400;
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address);
     deployTx = await nft.deployed();
   });
 
@@ -54,7 +53,6 @@ describe('NFT contract', () => {
       console.log("string:name -", `'${await nft.name()}'`);
       console.log("string:name -", `'${await nft.symbol()}'`);
       console.log("address:owner -", await nft.owner());
-      console.log("uint32:deadline -", hexZeroPad('0x' + (await nft.deadline()).toString(16), 4));
       console.log("uint16:totalSupply - ", hexZeroPad((await nft.circulatingSupply()).toHexString(), 2));
       console.log("uint16:ownerSupply -", hexZeroPad("0x" + bulkMintIds.length.toString(16), 2));
       console.log("uint16:userSupply -", hexZeroPad("0x" + userMints.toString(16), 2));
@@ -176,7 +174,7 @@ describe('NFT contract', () => {
       await ethers.provider.send("hardhat_setStorageAt", [
         nft.address,
         "0x9",
-        "0x000023280000000662cd763c15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "0x00000000000023280005001215d34aaf54267db7d7c367839aaf71a00a2c6a65",
       ]);
 
       await expect(nft.connect(addr1).mint(tokenId)).to.be.revertedWith('NFT: mint not available')

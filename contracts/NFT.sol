@@ -14,7 +14,6 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     uint16 private constant MAX_SUPPLY = 10005;
 
     address public fundingWallet;
-    uint32 public deadline;
     uint16 private totalSupply = 0;
     uint16 private ownerSupply = 0;
     uint16 private userSupply = 0;
@@ -31,12 +30,10 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
         string memory name_,
         string memory symbol_,
         string memory baseTokenURI_,
-        address fundingWallet_,
-        uint32 deadline_
+        address fundingWallet_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
         fundingWallet = fundingWallet_;
-        deadline = deadline_;
 
         _setDefaultRoyalty(fundingWallet_, 1500);
 

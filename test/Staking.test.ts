@@ -44,10 +44,9 @@ describe('Staking contract', () => {
 
     const blockNumBefore = await ethers.provider.getBlockNumber();
     const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-    const deadline = blockBefore.timestamp + 86400;
 
     const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline);
+    nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address);
     await nft.deployed();
 
     const Staking = (await ethers.getContractFactory('Staking')) as Staking__factory;
