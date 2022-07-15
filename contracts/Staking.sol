@@ -57,7 +57,7 @@ contract Staking is IERC721Receiver, AccessControl {
      * @notice Checks if nft is transferred to a contract.
      * @param _from The user address.
      * @param _tokenId The token id of collection.
-     * @return Selector to confirm the token transfer.
+     * @return Selector To confirm the token transfer.
      */
     function onERC721Received(
         address,
@@ -75,7 +75,7 @@ contract Staking is IERC721Receiver, AccessControl {
         }
 
         require(nft.status == uint8(Status.ACTIVE), "Staking: not started");
-        // Payout of tokens for staking.
+        // Gives available amount of golden nuggets.
         _claim(_from);
 
         Stake storage stake = stakeInfo[_from];
@@ -115,14 +115,14 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     /**
-     * @notice Gives the user the ability to earn tokens from staking.
+     * @notice Gives available amount of golden nuggets from staking.
      */
     function claim() external {
         _claim(msg.sender);
     }
 
     /**
-     * @notice Gives the user the ability to earn Golden Nugget tokens from staking.
+     * @notice Withdraws token NFT and gives available amount of golden nuggets from staking.
      * @param _nftId The token id of collection nft.
      * @param _nft The nft contract.
      */
@@ -132,7 +132,7 @@ contract Staking is IERC721Receiver, AccessControl {
             "Staking: not owner NFT"
         );
 
-        // Payout of tokens for staking.
+        // Gives available amount of golden nuggets.
         _claim(msg.sender);
         // Decreases the number of staked tokens.
         stakeInfo[msg.sender].tokenCount--;
@@ -148,7 +148,7 @@ contract Staking is IERC721Receiver, AccessControl {
     /**
      * @notice Checks if staking for specified collection is available.
      * @param _nft The nft contract.
-     * @return Status if staking is available or not.
+     * @return Status If staking is available or not.
      */
     function isActive(address _nft) external view returns (bool) {
         Nft memory nft = nftInfo[_nft];
@@ -187,7 +187,7 @@ contract Staking is IERC721Receiver, AccessControl {
 
         uint128 tokenCount_ = stake.tokenCount;
         uint128 startDate_ = stake.startDate;
-        uint256 payoutAmount_ = getPayoutAmount(startDate, tokenCount);
+        uint256 payoutAmount_ = getPayoutAmount(startDate_, tokenCount_);
 
         return (tokenCount_, startDate_, payoutAmount_);
     }
@@ -195,7 +195,7 @@ contract Staking is IERC721Receiver, AccessControl {
     /**
      * @notice Checks if percentage threshold is reached or not.
      * @param _nft The nft contract.
-     * @return Status if threshold is reached or not.
+     * @return Status If threshold is reached or not.
      */
     function isReachedThreshold(address _nft, uint8 _percentage)
         private
@@ -210,7 +210,7 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     /**
-     * @notice Gives the user the ability to earn tokens from staking.
+     * @notice Gives available amount of golden nuggets for specific user.
      * @param _to The user address.
      */
     function _claim(address _to) private {
@@ -232,7 +232,7 @@ contract Staking is IERC721Receiver, AccessControl {
     }
 
     /**
-     * @notice Gets the payout amount from staking nft.
+     * @notice Returns available amount of Golden Nuggets from staking nft.
      * @param _startDate The start date of staking.
      * @param _tokenCount The token count of staking.
      */

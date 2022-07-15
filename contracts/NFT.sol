@@ -53,7 +53,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @notice Mints NFT by the token id.
      * @param _tokenId The token id of collection nft.
      */
-    function mint(uint16 _tokenId) external payable {
+    function mint(uint16 _tokenId) external {
         // Limits of collection nft.
         require(userSupply < 9000, "NFT: mint not available");
         require(_tokenId >= 1 && _tokenId <= MAX_SUPPLY, "NFT: token !exists");
@@ -72,7 +72,7 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
      * @notice Mints NFT by the token ids.
      * @param _tokenIds The array of token ids of collection nft.
      */
-    function mintBulk(uint16[] calldata _tokenIds) external payable onlyOwner {
+    function mintBulk(uint16[] calldata _tokenIds) external onlyOwner {
         uint16 length = uint16(_tokenIds.length);
 
         require(ownerSupply + length <= 1000, "NFT: mint not available");
