@@ -13,15 +13,11 @@ async function main() {
   const name = "Wild West NFT";
   const symbol = "WWN";
   const baseTokenURI = "ipfs://QmSeARZo5Q4zEUTjJcHsBHdg9CfpniTdyWks24hMA4Qqrv/";
-  const blockNumBefore = await ethers.provider.getBlockNumber();
-  const blockBefore = await ethers.provider.getBlock(blockNumBefore);
-  const timestampBefore = blockBefore.timestamp;
-  const deadline = timestampBefore + 86400;
 
   [fundingWallet, ...addrs] = await ethers.getSigners();
 
   const Nft = (await ethers.getContractFactory('NFT')) as NFT__factory;
-  nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address, deadline);
+  nft = await Nft.deploy(name, symbol, baseTokenURI, fundingWallet.address);
   await nft.deployed();
 
   console.log("NFT deployed to:", nft.address);
@@ -30,7 +26,7 @@ async function main() {
 
   await hre.run("verify:verify", {
     address: nft.address,
-    constructorArguments: [name, symbol, baseTokenURI, fundingWallet.address, deadline],
+    constructorArguments: [name, symbol, baseTokenURI, fundingWallet.address],
   });
 }
 

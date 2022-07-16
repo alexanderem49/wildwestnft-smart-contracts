@@ -250,15 +250,16 @@ describe('Staking contract', () => {
       await incrementNextBlockTimestamp(259200);
       await ethers.provider.send("evm_mine", []);
 
-      const tx = await staking.claim();
+      const [tokenCountBefore, , amountToPayBefore] = await staking.getStakerInfo(owner.address);
 
-      const [tokenCountBefore, ,] = await staking.getStakerInfo(owner.address);
+      const tx = await staking.claim();
 
       const txTimestamp = await getBlockTimestamp(tx);
 
       const [tokenCountAfter, startDateAfter, amountToPayAfter] = await staking.getStakerInfo(owner.address);
 
-      expect(amountToPayAfter).to.equal(0);
+      expect(amountToPayBefore).to.not.equal(0);
+      expect(amountToPayAfter).to.not.equal(amountToPayBefore);
       expect(tokenCountAfter).to.equal(tokenCountBefore);
       expect(startDateAfter).to.equal(txTimestamp);
     })
