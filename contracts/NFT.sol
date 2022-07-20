@@ -9,11 +9,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     using Address for address payable;
 
-    uint64 public constant DISCOUNT_PRICE = 60000000000000000;
-    uint64 public constant BASE_PRICE = 80000000000000000;
     uint16 private constant MAX_SUPPLY = 10005;
 
-    address public fundingWallet;
     uint16 private totalSupply = 0;
     uint16 private ownerSupply = 0;
     uint16 private userSupply = 0;
@@ -22,8 +19,6 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
     mapping(address => bool) private _isWhitelisted;
 
     event PermanentURI(string _value, uint256 indexed _id);
-    event AddedToWhitelist(address[] _users);
-    event RemovedFromWhitelist(address[] _users);
     event Minted(uint16 indexed _tokenId, address indexed _buyer);
 
     constructor(
@@ -33,7 +28,6 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
         address fundingWallet_
     ) ERC721(name_, symbol_) {
         baseTokenURI = baseTokenURI_;
-        fundingWallet = fundingWallet_;
 
         _setDefaultRoyalty(fundingWallet_, 1500);
 
@@ -94,15 +88,6 @@ contract NFT is ERC721Royalty, Ownable, ITokenSupplyData {
         totalSupply += length;
         // Increases the owner supply of mints.
         ownerSupply += length;
-    }
-
-    /**
-     * @notice Sets a funding wallet to receive payments from users' purchases.
-     * @param _fundingWallet The user address.
-     */
-    function setFundingWallet(address _fundingWallet) external onlyOwner {
-        require(_fundingWallet != address(0), "NFT: wallet is zero address");
-        fundingWallet = _fundingWallet;
     }
 
     /**

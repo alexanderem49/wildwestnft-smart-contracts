@@ -56,7 +56,6 @@ describe('NFT contract', () => {
       console.log("uint16:totalSupply - ", hexZeroPad((await nft.circulatingSupply()).toHexString(), 2));
       console.log("uint16:ownerSupply -", hexZeroPad("0x" + bulkMintIds.length.toString(16), 2));
       console.log("uint16:userSupply -", hexZeroPad("0x" + userMints.toString(16), 2));
-      console.log("address:fundingWallet -", await nft.fundingWallet());
       console.log("string:baseTokenURI -", `'${await nft.baseTokenURI()}'`);
 
       for (let index = 0; index < slotsAmount; index++) {
@@ -91,10 +90,6 @@ describe('NFT contract', () => {
       expect(symbol).to.be.equal(await nft.symbol());
     })
 
-    it('should set funding wallet', async () => {
-      expect(fundingWallet.address).to.equal(await nft.fundingWallet());
-    })
-
     it('should set circulating supply', async () => {
       expect(await nft.circulatingSupply()).to.equal(5);
     })
@@ -127,24 +122,6 @@ describe('NFT contract', () => {
     })
   })
 
-  describe('sets funding wallet', async () => {
-    it('sets funding wallet successfully', async () => {
-
-      const fundingWalletBefore = await nft.fundingWallet();
-
-      await nft.setFundingWallet(addr3.address);
-
-      const fundingWalletAfter = await nft.fundingWallet();
-
-      expect(fundingWalletAfter).to.not.equal(fundingWalletBefore);
-      expect(fundingWalletAfter).to.equal(addr3.address);
-    })
-
-    it('rejects setting while zero address', async () => {
-      await expect(nft.setFundingWallet(zeroAddress)).to.be.revertedWith('NFT: wallet is zero address');
-    })
-  })
-
   describe('mints NFT by the token id', async () => {
     const tokenId = 1;
 
@@ -173,8 +150,8 @@ describe('NFT contract', () => {
     it('rejects minting NFT while user supply more than allowed', async () => {
       await ethers.provider.send("hardhat_setStorageAt", [
         nft.address,
-        "0x9",
-        "0x00000000000023280005001215d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "0x8",
+        "0x000000000000232800050012f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
       ]);
 
       await expect(nft.connect(addr1).mint(tokenId)).to.be.revertedWith('NFT: mint not available')
