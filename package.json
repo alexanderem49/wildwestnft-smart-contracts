@@ -31,7 +31,7 @@
     "@openzeppelin/contracts": "^4.7.2",
     "@typechain/ethers-v5": "^7.2.0",
     "@typechain/hardhat": "^2.3.1",
-    "@types/chai": "^4.3.1",
+    "@types/chai": "^4.3.3",
     "@types/download": "^8.0.1",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.6.4",
