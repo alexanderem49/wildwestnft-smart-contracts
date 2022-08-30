@@ -34,7 +34,7 @@
     "@types/chai": "^4.3.3",
     "@types/download": "^8.0.1",
     "@types/mocha": "^9.1.1",
-    "@types/node": "^18.7.1",
+    "@types/node": "^18.7.14",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
     "ethereum-waffle": "^3.4.4",
